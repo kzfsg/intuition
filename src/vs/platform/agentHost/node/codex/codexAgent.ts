@@ -52,7 +52,7 @@ import type { TurnStartParams } from './protocol/generated/v2/TurnStartParams.js
 
 const CLIENT_INFO = {
 	name: 'vscode_agent_host',
-	title: 'VS Code Agent Host',
+	title: 'Intuition Agent Host',
 	// The codex `clientInfo.version` is informational. Hardcoded to a
 	// non-empty placeholder; bumping it isn't required when our code
 	// changes.
