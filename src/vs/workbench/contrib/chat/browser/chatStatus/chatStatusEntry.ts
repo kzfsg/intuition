@@ -139,7 +139,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	}
 
 	private getEntryProps(): IStatusbarEntry {
-		let text = '$(copilot)';
+		let text = '$(mortar-board)';
 		let ariaLabel = localize('chatStatusAria', "Intuition status");
 		let kind: StatusbarEntryKind | undefined;
 
@@ -239,7 +239,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		const signInLabel = localize('signIn', "Sign In");
 		return {
 			name: localize('chatStatus', "Intuition Status"),
-			text: showSignInLabel ? `$(copilot) ${signInLabel}` : '$(copilot)',
+			text: showSignInLabel ? `$(mortar-board) ${signInLabel}` : '$(mortar-board)',
 			ariaLabel: showSignInLabel ? signInLabel : localize('chatStatusAria', "Intuition status"),
 			command: CHAT_SETUP_ACTION_ID,
 			showInAllWindows: true,
