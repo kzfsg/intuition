@@ -126,7 +126,10 @@ function installHeaders() {
 	// file checked into our repository. So from that point it is safe to construct the path
 	// to that executable
 	const node_gyp = process.platform === 'win32'
-		? path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')
+		// Quote the path: it is run with `shell: true` below, so an unquoted path
+		// containing spaces (e.g. a user profile like "C:\Users\First Last\...") would
+		// be split by the shell and fail with "'C:\Users\First' is not recognized".
+		? `"${path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')}"`
 		: path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp');
 
 	const local = getHeaderInfo(path.join(import.meta.dirname, '..', '..', '.npmrc'));
