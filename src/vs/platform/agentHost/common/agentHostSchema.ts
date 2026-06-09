@@ -314,7 +314,7 @@ export const platformSessionSchema = createSchema({
 			localize('agentHost.sessionConfig.autoApprove.autopilot', "Autopilot (Preview)"),
 		],
 		enumDescriptions: [
-			localize('agentHost.sessionConfig.autoApprove.defaultDescription', "Copilot uses your configured settings"),
+			localize('agentHost.sessionConfig.autoApprove.defaultDescription', "Intuition uses your configured settings"),
 			localize('agentHost.sessionConfig.autoApprove.bypassDescription', "All tool calls are auto-approved"),
 			localize('agentHost.sessionConfig.autoApprove.autopilotDescription', "Autonomously iterates from start to finish"),
 		],

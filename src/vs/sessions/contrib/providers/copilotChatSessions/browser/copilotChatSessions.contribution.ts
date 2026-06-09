@@ -20,13 +20,13 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			type: 'boolean',
 			default: true,
 			tags: ['preview'],
-			description: localize('sessions.github.copilot.multiChatSessions', "Whether to enable multiple chats within a single session in the Copilot Chat sessions provider."),
+			description: localize('sessions.github.copilot.multiChatSessions', "Whether to enable multiple chats within a single session in the Intuition Chat sessions provider."),
 		},
 		[CLAUDE_CODE_ENABLED_SETTING]: {
 			type: 'boolean',
 			default: true,
 			experiment: { mode: 'startup' },
-			description: localize('sessions.chat.claudeAgent.enabled', "Enable Claude Agent sessions in the Agents window. Start and resume agentic coding sessions powered by Anthropic's Claude Agent SDK directly. Uses your existing Copilot subscription."),
+			description: localize('sessions.chat.claudeAgent.enabled', "Enable Claude Agent sessions in the Agents window. Start and resume agentic coding sessions powered by Anthropic's Claude Agent SDK directly. Uses your existing Intuition subscription."),
 		},
 	},
 });

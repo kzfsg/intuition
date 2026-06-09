@@ -8,10 +8,10 @@
 AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
-AppPublisher=Microsoft Corporation
-AppPublisherURL=https://code.visualstudio.com/
-AppSupportURL=https://code.visualstudio.com/
-AppUpdatesURL=https://code.visualstudio.com/
+AppPublisher=Intuition
+AppPublisherURL=https://intuition.dev/
+AppSupportURL=https://intuition.dev/
+AppUpdatesURL=https://intuition.dev/
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}

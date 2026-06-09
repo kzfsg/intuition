@@ -241,19 +241,19 @@ export function isProUser(chatEntitlement: ChatEntitlement): boolean {
 export function getChatPlanName(chatEntitlement: ChatEntitlement): string {
 	switch (chatEntitlement) {
 		case ChatEntitlement.EDU:
-			return localize('plan.eduName', 'Copilot Student');
+			return localize('plan.eduName', 'Intuition Student');
 		case ChatEntitlement.Pro:
-			return localize('plan.proName', 'Copilot Pro');
+			return localize('plan.proName', 'Intuition Pro');
 		case ChatEntitlement.ProPlus:
-			return localize('plan.proPlusName', 'Copilot Pro+');
+			return localize('plan.proPlusName', 'Intuition Pro+');
 		case ChatEntitlement.Max:
-			return localize('plan.maxName', 'Copilot Max');
+			return localize('plan.maxName', 'Intuition Max');
 		case ChatEntitlement.Business:
-			return localize('plan.businessName', 'Copilot Business');
+			return localize('plan.businessName', 'Intuition Business');
 		case ChatEntitlement.Enterprise:
-			return localize('plan.enterpriseName', 'Copilot Enterprise');
+			return localize('plan.enterpriseName', 'Intuition Enterprise');
 		default:
-			return localize('plan.freeName', 'Copilot Free');
+			return localize('plan.freeName', 'Intuition Free');
 	}
 }
 
@@ -1151,7 +1151,7 @@ export class ChatEntitlementRequests extends Disposable {
 		if (!this.lifecycleService.willShutdown) {
 			const { confirmed } = await this.dialogService.confirm({
 				type: Severity.Error,
-				message: localize('unknownSignUpError', "An error occurred while signing up for the GitHub Copilot Free plan. Would you like to try again?"),
+				message: localize('unknownSignUpError', "An error occurred while signing up for the Intuition Free plan. Would you like to try again?"),
 				detail,
 				primaryButton: localize('retry', "Retry")
 			});
@@ -1168,7 +1168,7 @@ export class ChatEntitlementRequests extends Disposable {
 		if (!this.lifecycleService.willShutdown) {
 			this.dialogService.prompt({
 				type: Severity.Error,
-				message: localize('unprocessableSignUpError', "An error occurred while signing up for the GitHub Copilot Free plan."),
+				message: localize('unprocessableSignUpError', "An error occurred while signing up for the Intuition Free plan."),
 				detail: logDetails,
 				buttons: [
 					{

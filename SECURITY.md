@@ -1,14 +1,12 @@
-<!-- BEGIN MICROSOFT SECURITY.MD V1.0.0 BLOCK -->
-
 ## Security
 
-Microsoft takes the security of our software products and services seriously, which
-includes all source code repositories in our GitHub organizations.
+Intuition takes the security of our software seriously, which includes all
+source code repositories under the Intuition organization.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-For security reporting information, locations, contact information, and policies,
-please review the latest guidance for Microsoft repositories at
-[https://aka.ms/SECURITY.md](https://aka.ms/SECURITY.md).
+Instead, please report them privately by opening a [security advisory](https://github.com/intuition/intuition/security/advisories/new)
+on the Intuition repository, or by contacting the maintainers directly.
 
-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+We will do our best to acknowledge your report promptly and keep you informed
+of the progress toward a fix.

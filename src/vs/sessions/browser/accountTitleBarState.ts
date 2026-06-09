@@ -156,10 +156,10 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
-			label: localize('copilotUnavailable', "Copilot Unavailable"),
+			label: localize('copilotUnavailable', "Intuition Unavailable"),
 			ariaLabel: sentiment.untrusted
-				? localize('copilotUnavailableUntrustedAria', "GitHub Copilot is unavailable in untrusted workspaces")
-				: localize('copilotUnavailableDisabledAria', "GitHub Copilot is disabled"),
+				? localize('copilotUnavailableUntrustedAria', "Intuition is unavailable in untrusted workspaces")
+				: localize('copilotUnavailableDisabledAria', "Intuition is disabled"),
 		};
 	}
 
@@ -185,7 +185,7 @@ function getCopilotPresentation(
 			label: localize('copilotTokensRemaining', "Tokens Remaining"),
 			badge: `${remainingPercent}%`,
 			dotBadge: remainingPercent <= 10 ? 'error' : 'warning',
-			ariaLabel: localize('copilotTokensRemainingAria', "{0}% GitHub Copilot tokens remaining", remainingPercent),
+			ariaLabel: localize('copilotTokensRemainingAria', "{0}% Intuition tokens remaining", remainingPercent),
 		};
 	}
 
@@ -209,12 +209,12 @@ function getLowestPositivePercent(...quotas: Array<IQuotaSnapshot | undefined>):
 
 function getQuotaReachedAriaLabel(chatQuotaExceeded: boolean, completionsQuotaExceeded: boolean): string {
 	if (chatQuotaExceeded && completionsQuotaExceeded) {
-		return localize('copilotAllQuotaReachedAria', "GitHub Copilot chat and inline suggestion quota reached");
+		return localize('copilotAllQuotaReachedAria', "Intuition chat and inline suggestion quota reached");
 	}
 
 	if (chatQuotaExceeded) {
-		return localize('copilotChatQuotaReachedAria', "GitHub Copilot chat quota reached");
+		return localize('copilotChatQuotaReachedAria', "Intuition chat quota reached");
 	}
 
-	return localize('copilotCompletionsQuotaReachedAria', "GitHub Copilot inline suggestion quota reached");
+	return localize('copilotCompletionsQuotaReachedAria', "Intuition inline suggestion quota reached");
 }

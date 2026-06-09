@@ -39,10 +39,16 @@
 
 .agentSessionsWelcome-header h1.product-name {
 	font-size: 32px;
-	font-weight: 400;
+	font-weight: 300;
 	line-height: 1;
+	letter-spacing: -0.01em;
+	text-transform: lowercase;
 	margin: 0 0 12px 0;
+	padding-bottom: 8px;
 	color: var(--vscode-foreground);
+	/* Single accent moment: thin iridescent spectrum underline */
+	border-bottom: 2px solid transparent;
+	border-image: linear-gradient(90deg, #d946ef, #7c3aed, #06b6d4) 1;
 }
 
 .agentSessionsWelcome-startEntries {
@@ -130,6 +136,7 @@
 
 .agentSessionsWelcome-suggestedPrompt:hover {
 	background-color: var(--vscode-button-secondaryHoverBackground);
+	border-color: var(--vscode-focusBorder);
 }
 
 /* Sessions grid */

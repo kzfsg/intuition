@@ -259,7 +259,7 @@ export class SessionTypePickerActionItem extends ChatInputPickerActionViewItem {
 
 	private _getUpgradeHover(): MarkdownString {
 		const hover = new MarkdownString('', { isTrusted: { enabledCommands: ['workbench.action.chat.upgradePlan'] }, supportThemeIcons: true });
-		hover.appendMarkdown(localize('chat.sessionTarget.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan) to delegate work to the cloud agent."));
+		hover.appendMarkdown(localize('chat.sessionTarget.upgradeHover', "[Upgrade to Intuition Pro](command:workbench.action.chat.upgradePlan) to delegate work to the cloud agent."));
 		return hover;
 	}
 
