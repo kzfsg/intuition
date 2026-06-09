@@ -39,8 +39,12 @@ export enum ThemeSettings {
 }
 
 export namespace ThemeSettingDefaults {
-	export const COLOR_THEME_DARK = 'Intuition Dark';
-	export const COLOR_THEME_LIGHT = 'Intuition Light';
+	// NOTE: these are theme settingsId values (the theme contribution `id`), NOT display
+	// labels. The default theme is resolved via findThemeBySettingsId(), so these must match
+	// the `id` in extensions/theme-defaults/package.json ("Dark 2026"/"Light 2026"). The
+	// user-facing label is branded "Intuition Dark"/"Intuition Light" via package.nls.json.
+	export const COLOR_THEME_DARK = 'Dark 2026';
+	export const COLOR_THEME_LIGHT = 'Light 2026';
 	export const COLOR_THEME_HC_DARK = 'Default High Contrast';
 	export const COLOR_THEME_HC_LIGHT = 'Default High Contrast Light';
 
