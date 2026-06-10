@@ -417,3 +417,49 @@
 .course-indexing-stage.current {
 	font-weight: 600;
 }
+
+/* --- lazy body skeleton + nav footer --- */
+
+.intuition-course-editor .course-page-nav {
+	display: flex;
+	flex-direction: column;
+}
+
+.course-page-skeleton-line {
+	height: 14px;
+	margin: 10px 0;
+	border-radius: 4px;
+	background: var(--vscode-editorWidget-background);
+	animation: course-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.course-page-skeleton-line:nth-child(2) { width: 92%; }
+.course-page-skeleton-line:nth-child(3) { width: 84%; }
+.course-page-skeleton-line:nth-child(4) { width: 60%; }
+
+@keyframes course-skeleton-pulse {
+	50% { opacity: 0.45; }
+}
+
+.course-page-nav-footer {
+	margin-top: auto;
+	padding-top: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.course-page-indexed.stale {
+	color: var(--vscode-editorWarning-foreground, inherit);
+}
+
+.course-page-reindex {
+	align-self: flex-start;
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+}

@@ -11,6 +11,7 @@ import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize } from '../../../../nls.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IMarkdownRendererService } from '../../../../platform/markdown/browser/markdownRenderer.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
@@ -23,6 +24,7 @@ import { IEditorGroup } from '../../../services/editor/common/editorGroupsServic
 import { QueryBuilder } from '../../../services/search/common/queryBuilder.js';
 import { ISearchService } from '../../../services/search/common/search.js';
 import { COURSE_EDITOR_ID, CourseLevel, ICourse, ICourseLesson, LessonState } from '../common/course.js';
+import { readHeadCommit } from '../common/courseGitHead.js';
 import { CourseGenerationState, ICourseService } from '../common/courseService.js';
 import { CourseEditorInput, ICourseEditorOptions } from './courseEditorInput.js';
 
@@ -58,6 +60,7 @@ export class CourseEditor extends EditorPane {
 		@IWorkspaceContextService private readonly contextService: IWorkspaceContextService,
 		@ISearchService private readonly searchService: ISearchService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@IFileService private readonly fileService: IFileService,
 	) {
 		super(CourseEditor.ID, group, telemetryService, themeService, storageService);
 
@@ -274,6 +277,26 @@ export class CourseEditor extends EditorPane {
 				this.renderNavLesson(list, lesson);
 			}
 		}
+
+		const footer = dom.append(parent, $('.course-page-nav-footer'));
+		if (course.indexedCommit) {
+			const stamp = dom.append(footer, $('span.course-page-indexed', undefined,
+				localize('coursePage.indexedAt', "indexed at {0}", course.indexedCommit)));
+			this.decorateStaleness(stamp, course.indexedCommit);
+		}
+		const reindex = dom.append(footer, $('button.course-page-reindex', undefined, localize('coursePage.reindex', "Re-index")));
+		this.renderDisposables.add(dom.addDisposableListener(reindex, dom.EventType.CLICK, () => {
+			this.courseService.reindex();
+		}));
+	}
+
+	private async decorateStaleness(stamp: HTMLElement, indexedCommit: string): Promise<void> {
+		const root = this.contextService.getWorkspace().folders[0]?.uri;
+		const head = root ? await readHeadCommit(this.fileService, root) : undefined;
+		if (head && head !== indexedCommit && stamp.isConnected) {
+			stamp.textContent += ' ' + localize('coursePage.stale', "(repository has changed since)");
+			stamp.classList.add('stale');
+		}
 	}
 
 	private renderNavLesson(parent: HTMLElement, lesson: ICourseLesson): void {
@@ -313,9 +336,33 @@ export class CourseEditor extends EditorPane {
 		dom.append(lessonEl, $(`.course-page-state-tag.${state}`, undefined, this.stateLabel(state)));
 
 		const markdown = dom.append(lessonEl, $('.course-page-markdown'));
-		const rendered = this.markdownRendererService.render(new MarkdownString(lesson.content ?? ''));
-		this.renderDisposables.add(rendered);
-		markdown.appendChild(rendered.element);
+		if (lesson.content !== undefined) {
+			const rendered = this.markdownRendererService.render(new MarkdownString(lesson.content));
+			this.renderDisposables.add(rendered);
+			markdown.appendChild(rendered.element);
+		} else {
+			markdown.classList.add('loading');
+			for (let i = 0; i < 4; i++) {
+				dom.append(markdown, $('.course-page-skeleton-line'));
+			}
+			this.courseService.getLessonContent(lesson.id).then(content => {
+				if (!markdown.isConnected) {
+					return; // re-rendered meanwhile
+				}
+				markdown.classList.remove('loading');
+				dom.clearNode(markdown);
+				const rendered = this.markdownRendererService.render(new MarkdownString(content));
+				this.renderDisposables.add(rendered);
+				markdown.appendChild(rendered.element);
+			}, () => {
+				if (markdown.isConnected) {
+					markdown.classList.remove('loading');
+					dom.clearNode(markdown);
+					dom.append(markdown, $('.course-page-hint', undefined,
+						localize('coursePage.contentError', "Couldn't load this lesson. Re-open it to retry.")));
+				}
+			});
+		}
 
 		if (state === LessonState.Active) {
 			if (lesson.quiz) {

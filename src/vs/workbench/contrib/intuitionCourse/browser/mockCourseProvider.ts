@@ -6,7 +6,10 @@
 import { disposableTimeout } from '../../../../base/common/async.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { CourseLevel, ICourse } from '../common/course.js';
+import { readHeadCommit } from '../common/courseGitHead.js';
 import { CourseGenerationState, ICourseGenerationOptions, ICourseGenerationProgress, ICourseProvider } from '../common/courseService.js';
 
 /**
@@ -29,6 +32,13 @@ export class MockCourseProvider extends Disposable implements ICourseProvider {
 	private progress: ICourseGenerationProgress | undefined;
 	private level = CourseLevel.Codebase;
 	private readonly timers = this._register(new DisposableStore());
+
+	constructor(
+		@IFileService private readonly fileService: IFileService,
+		@IWorkspaceContextService private readonly contextService: IWorkspaceContextService,
+	) {
+		super();
+	}
 
 	getGenerationState(): CourseGenerationState { return this.state; }
 	getGenerationProgress(): ICourseGenerationProgress | undefined { return this.progress; }
@@ -69,10 +79,13 @@ export class MockCourseProvider extends Disposable implements ICourseProvider {
 		if (this.state !== CourseGenerationState.Ready) {
 			return undefined;
 		}
+		const root = this.contextService.getWorkspace().folders[0]?.uri;
+		const indexedCommit = root ? await readHeadCommit(this.fileService, root) : undefined;
 		// outline only: bodies resolve through provideLessonContent
 		return {
 			...mockCourse,
 			level: this.level,
+			indexedCommit,
 			modules: mockCourse.modules.map(m => ({ ...m, lessons: m.lessons.map(({ content: _content, ...rest }) => rest) })),
 		};
 	}

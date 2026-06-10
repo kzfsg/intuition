@@ -24,7 +24,7 @@ import { TitleBarLeadingActionsGroup } from '../../../browser/parts/titlebar/tit
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { EditorExtensions, IEditorFactoryRegistry } from '../../../common/editor.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { OPEN_COURSE_COMMAND_ID, OPEN_LESSON_COMMAND_ID, RESET_PROGRESS_COMMAND_ID } from '../common/course.js';
+import { OPEN_COURSE_COMMAND_ID, OPEN_LESSON_COMMAND_ID, REINDEX_COMMAND_ID, RESET_PROGRESS_COMMAND_ID } from '../common/course.js';
 import { ICourseService } from '../common/courseService.js';
 import { CourseEditor } from './courseEditor.js';
 import { CourseEditorInput, CourseEditorInputSerializer, ICourseEditorOptions } from './courseEditorInput.js';
@@ -56,9 +56,12 @@ class CourseProviderContribution extends Disposable implements IWorkbenchContrib
 
 	static readonly ID = 'workbench.contrib.intuitionCourseProvider';
 
-	constructor(@ICourseService courseService: ICourseService) {
+	constructor(
+		@ICourseService courseService: ICourseService,
+		@IInstantiationService instantiationService: IInstantiationService,
+	) {
 		super();
-		this._register(courseService.registerProvider(this._register(new MockCourseProvider())));
+		this._register(courseService.registerProvider(this._register(instantiationService.createInstance(MockCourseProvider))));
 	}
 }
 
@@ -169,5 +172,20 @@ registerAction2(class ResetCourseProgressAction extends Action2 {
 
 	override run(accessor: ServicesAccessor): void {
 		accessor.get(ICourseService).resetProgress();
+	}
+});
+
+registerAction2(class ReindexCourseAction extends Action2 {
+	constructor() {
+		super({
+			id: REINDEX_COMMAND_ID,
+			title: localize2('course.reindex', "Re-index Course"),
+			category: localize2('intuition', "Intuition"),
+			f1: true,
+		});
+	}
+
+	override run(accessor: ServicesAccessor): void {
+		accessor.get(ICourseService).reindex();
 	}
 });
