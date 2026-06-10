@@ -1,6 +1,6 @@
 # Barebones Default Layout Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Ship Cursor-faithful barebones layout defaults via one Intuition-owned file, and exclude four legacy built-in extensions from packaged builds.
 
@@ -44,23 +44,23 @@ The spec mandates verifying four things before relying on them. Record findings;
 - `src/vs/platform/configuration/common/configurationRegistry.ts`
 - `extensions/grunt/package.json`, `extensions/gulp/package.json`, `extensions/jake/package.json`, `extensions/php-language-features/package.json`
 
-- [ ] **Step 1: Confirm surveys are inert without touching the feedback switch**
+- [x] **Step 1: Confirm surveys are inert without touching the feedback switch**
 
 Run: `grep -nE "npsSurveyUrl|surveys|languageSurvey" product.json`
 Expected: no matches → NPS/language surveys never fire (they require these product.json fields). Therefore do **not** add `telemetry.feedback.enabled` to the defaults map — this preserves Help → Report Issue.
 If matches DO appear: stop, report to the human — a narrower switch must be designed.
 
-- [ ] **Step 2: Confirm the registry API shapes used by the code below**
+- [x] **Step 2: Confirm the registry API shapes used by the code below**
 
 Run: `grep -nE "registerDefaultConfigurations|getConfigurationDefaultsOverrides|interface IConfigurationDefaults" src/vs/platform/configuration/common/configurationRegistry.ts | head -20`
 Expected: `registerDefaultConfigurations(defaultConfigurations: IConfigurationDefaults[])` exists; an accessor for registered default overrides exists (named `getConfigurationDefaultsOverrides` or similar returning a Map keyed by setting id). If the accessor name differs from what Task 3's test code uses, adjust the test code to the real name. Also note whether `IConfigurationDefaults` has an optional `source` field — the implementation omits it either way.
 
-- [ ] **Step 3: Confirm the two pre-verified setting keys still exist**
+- [x] **Step 3: Confirm the two pre-verified setting keys still exist**
 
 Run: `grep -n "chat.growthNotification.enabled" src/vs/workbench/contrib/chat/common/constants.ts && grep -n "update.showReleaseNotes" src/vs/platform/update/common/update.config.contribution.ts`
 Expected: one hit each (spec review found them at constants.ts:71 and update.config.contribution.ts:74).
 
-- [ ] **Step 4: Record the exact package names for the four excluded extensions**
+- [x] **Step 4: Record the exact package names for the four excluded extensions**
 
 Run: `for e in grunt gulp jake php-language-features; do node -e "console.log(require('./extensions/$e/package.json').name)"; done`
 Expected: `grunt`, `gulp`, `jake`, `php-language-features`. The `excludedExtensions` entries in Task 4 must use these exact names (adjust if they differ).
@@ -72,7 +72,7 @@ Expected: `grunt`, `gulp`, `jake`, `php-language-features`. The `excludedExtensi
 **Files:**
 - Create: `src/vs/workbench/test/common/intuition/intuitionDefaults.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 /*---------------------------------------------------------------------------------------------
@@ -117,7 +117,7 @@ suite('Intuition Default Overrides', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 export PATH="$PATH:/c/Windows/System32:/c/Windows"
@@ -125,7 +125,7 @@ npm run transpile-client && npm run test-node -- --run src/vs/workbench/test/com
 ```
 Expected: FAIL — the transpile or loader errors with "Cannot find module .../intuitionDefaults.contribution" (the contribution does not exist yet). A transpile error naming the missing contribution IS the expected red state, not a setup problem. If instead the runner reports "0 tests", check the path filter syntax with `npm run test-node -- --help`.
 
-- [ ] **Step 3: Commit the failing test? No.** This repo's pre-commit hook compiles cleanly only when imports resolve; commit happens after Task 3 makes it green.
+- [x] **Step 3: Commit the failing test? No.** This repo's pre-commit hook compiles cleanly only when imports resolve; commit happens after Task 3 makes it green.
 
 ---
 
@@ -135,7 +135,7 @@ Expected: FAIL — the transpile or loader errors with "Cannot find module .../i
 - Create: `src/vs/workbench/common/intuition/intuitionDefaults.contribution.ts`
 - Modify: `src/vs/workbench/workbench.common.main.ts` (one import line)
 
-- [ ] **Step 1: Create the contribution file**
+- [x] **Step 1: Create the contribution file**
 
 ```typescript
 /*---------------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 	.registerDefaultConfigurations([{ overrides: { ...intuitionDefaultOverrides } }]);
 ```
 
-- [ ] **Step 2: Wire the import into `workbench.common.main.ts`**
+- [x] **Step 2: Wire the import into `workbench.common.main.ts`**
 
 Find the anchor: `grep -n "browser/workbench.contribution" src/vs/workbench/workbench.common.main.ts` — then add immediately after that line:
 
@@ -191,19 +191,19 @@ Find the anchor: `grep -n "browser/workbench.contribution" src/vs/workbench/work
 import './common/intuition/intuitionDefaults.contribution.js';
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `npm run compile-check-ts-native`
 Expected: exit 0, no output errors.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 npm run transpile-client && npm run test-node -- --run src/vs/workbench/test/common/intuition/intuitionDefaults.test.ts
 ```
 Expected: PASS — 2 passing tests. If the defaults-overrides accessor name from Task 1 Step 2 differed, the test was already adjusted; if `actual.value` is not the value shape, read the `IConfigurationDefaultOverrideValue` type in configurationRegistry.ts and match it.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/vs/workbench/common/intuition/ src/vs/workbench/test/common/intuition/ src/vs/workbench/workbench.common.main.ts
@@ -220,7 +220,7 @@ Expected: hygiene hook passes. If `code-import-patterns` rejects an import, the 
 - Modify: `build/gulpfile.extensions.ts` (compilations array; grunt/gulp/jake/php-language-features tsconfig lines)
 - Modify: `build/npm/dirs.ts` (the four `extensions/...` entries)
 
-- [ ] **Step 1: Add the four names to `excludedExtensions` in `build/lib/extensions.ts`**
+- [x] **Step 1: Add the four names to `excludedExtensions` in `build/lib/extensions.ts`**
 
 Locate the array (`grep -n "excludedExtensions" build/lib/extensions.ts`), append entries using the exact names recorded in Task 1 Step 4, each with a comment marker:
 
@@ -232,16 +232,16 @@ Locate the array (`grep -n "excludedExtensions" build/lib/extensions.ts`), appen
 	'php-language-features',
 ```
 
-- [ ] **Step 2: Remove their tsconfig lines from the compilations array in `build/gulpfile.extensions.ts`**
+- [x] **Step 2: Remove their tsconfig lines from the compilations array in `build/gulpfile.extensions.ts`**
 
 Delete these four lines (locate with `grep -nE "(grunt|gulp|jake|php-language-features)/tsconfig" build/gulpfile.extensions.ts` — note: a broad grep for `gulp` also matches the gulp library imports used throughout this gulpfile; touch only the four tsconfig compilations entries):
 `extensions/grunt/tsconfig.json`, `extensions/gulp/tsconfig.json`, `extensions/jake/tsconfig.json`, `extensions/php-language-features/tsconfig.json`
 
-- [ ] **Step 3: Remove the four directories from `build/npm/dirs.ts`**
+- [x] **Step 3: Remove the four directories from `build/npm/dirs.ts`**
 
 Delete the entries `'extensions/grunt'`, `'extensions/gulp'`, `'extensions/jake'`, `'extensions/php-language-features'`.
 
-- [ ] **Step 4: Sanity-check the edits**
+- [x] **Step 4: Sanity-check the edits**
 
 ```bash
 grep -cE "'(grunt|gulp|jake|php-language-features)'" build/lib/extensions.ts   # expect >= 4
@@ -251,12 +251,12 @@ node --experimental-strip-types -e "import('./build/npm/dirs.ts').then(m=>consol
 ```
 Expected: counts as annotated; dirs.ts parses.
 
-- [ ] **Step 5: Confirm the PHP grammar extension is untouched**
+- [x] **Step 5: Confirm the PHP grammar extension is untouched**
 
 Run: `ls extensions/php/package.json`
 Expected: exists (syntax highlighting stays).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add build/lib/extensions.ts build/gulpfile.extensions.ts build/npm/dirs.ts
@@ -269,7 +269,7 @@ git commit -m "build: exclude legacy task-runner/php-features built-in extension
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Launch with a fresh profile**
+- [x] **Step 1: Launch with a fresh profile**
 
 ```bash
 export PATH="$PATH:/c/Windows/System32:/c/Windows"
@@ -278,7 +278,7 @@ npm run transpile-client
 .build/electron/Intuition.exe . --user-data-dir="$TEMP/intuition-layout-check" --no-cached-data > "$TEMP/intuition-layout-check.log" 2>&1 &
 ```
 
-- [ ] **Step 2: Visual checklist (human confirms)**
+- [x] **Step 2: Visual checklist (human confirms)**
 
 1. Activity icons appear as a **horizontal row at the top of the sidebar** (no vertical rail).
 2. Window title is **plain** (no command-center search pill).
@@ -290,11 +290,13 @@ npm run transpile-client
 8. Open the **Agents Window** (sessions) — its layout unchanged (its own status-bar/command-center overrides still win).
 9. Settings UI: search `activity bar location` — shows `top` as **default** (not "modified by user").
 
-- [ ] **Step 3: Check the log for new errors**
+> Verified by human (zheng feng) on 2026-06-10 — all 9 checklist items confirmed on a fresh profile; logs clean (0 activation failures, no welcome page).
+
+- [x] **Step 3: Check the log for new errors**
 
 Run: `grep -ciE "error|failed" "$TEMP/intuition-layout-check.log"` and compare character of hits against the known-clean baseline (auth/token INFO lines are normal; no new "Cannot find module"/activation failures).
 
-- [ ] **Step 4: Push**
+- [x] **Step 4: Push**
 
 ```bash
 git push
@@ -308,3 +310,5 @@ Expected: both commits on `origin/rebrand-intuition`.
 1. **Dev-from-source still loads the four excluded extensions** when stale `extensions/*/out/` exists from earlier builds (the dev extension scanner reads `<appRoot>/extensions` directly; `excludedExtensions` gates packaging only). On a fresh clone they instead fail activation quietly (grunt/gulp/jake) or on opening a .php file (php-language-features). Options: delete the four directories outright at the next upstream sync (pure deletions merge trivially), or accept and document. Packaged builds are correct either way.
 2. Core task-system still references grunt/gulp/jake in task *templates*/telemetry tags (`taskTemplates.ts` etc.) — independent of the extensions, nothing breaks; a later "barebones" sweep may want the templates gone too.
 3. Test note: `intuitionDefaults.test.ts` uses `assert.strictEqual`, correct while all override values stay primitive; switch to `deepStrictEqual` if an object-valued default is ever added.
+4. **Drift-alarm schema coverage is 1 of 8 keys** (`update.showReleaseNotes` only). A companion test in a browser bucket (importing workbench.contribution.js, gettingStarted.contribution.js, chat.shared.contribution.js) could schema-check the remaining 7; until then, upstream-sync engineers must manually confirm the 7 keys still exist.
+5. Experiment-pin hardening applied post-review: defaults register with `preventExperimentOverride: true` + source, matching the sessions configuration.contribution.ts pattern.

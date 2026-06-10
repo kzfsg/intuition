@@ -28,9 +28,11 @@ suite('Intuition Default Overrides', () => {
 	});
 
 	test('overridden keys still exist in the configuration schema (upstream drift alarm)', () => {
-		// Keys whose registering modules are loaded in this test environment. Chat keys
-		// register in heavy browser-layer modules we cannot load here; for those, the
-		// override-registration assertion above is the drift alarm.
+		// Keys whose registering modules are loaded in this test environment. The other
+		// keys register in heavy browser-layer modules we cannot load here and get NO
+		// schema-existence check — registering a default for a renamed key succeeds
+		// silently, so renames of those keys are only caught manually at upstream-sync
+		// time (see follow-up #4 in docs/superpowers/plans/2026-06-10-barebones-layout.md).
 		const schemaCheckedKeys = ['update.showReleaseNotes'];
 		const properties = registry.getConfigurationProperties();
 		for (const key of schemaCheckedKeys) {

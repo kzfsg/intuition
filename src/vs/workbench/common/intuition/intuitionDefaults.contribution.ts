@@ -20,6 +20,9 @@ import { Registry } from '../../../platform/registry/common/platform.js';
  * icons in a horizontal row atop the sidebar, plain window title, clean empty
  * editor on startup, chat in the right sidebar (already the upstream
  * default), thin status bar kept, terminal hidden until opened.
+ *
+ * These defaults are registered with `preventExperimentOverride: true` so that
+ * remote experiments cannot flip them after the product ships.
  */
 export const intuitionDefaultOverrides = Object.freeze<Record<string, unknown>>({
 
@@ -39,4 +42,8 @@ export const intuitionDefaultOverrides = Object.freeze<Record<string, unknown>>(
 });
 
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
-	.registerDefaultConfigurations([{ overrides: { ...intuitionDefaultOverrides } }]);
+	.registerDefaultConfigurations([{
+		overrides: { ...intuitionDefaultOverrides },
+		source: 'intuitionDefaults',
+		preventExperimentOverride: true
+	}]);
