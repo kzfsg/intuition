@@ -6,7 +6,7 @@
 import { Emitter } from '../../../../base/common/event.js';
 import { Disposable, IDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
-import { ICourse, ICourseLesson, LessonState } from '../common/course.js';
+import { CourseLevel, ICourse, ICourseCatalog, ICourseLesson, LessonState } from '../common/course.js';
 import { CourseGenerationState, ICourseGenerationOptions, ICourseGenerationProgress, ICourseProgress, ICourseProvider, ICourseService } from '../common/courseService.js';
 
 export class CourseService extends Disposable implements ICourseService {
@@ -14,6 +14,7 @@ export class CourseService extends Disposable implements ICourseService {
 	declare readonly _serviceBrand: undefined;
 
 	private static readonly CACHE_KEY = 'intuition.course.cache';
+	private static readonly LEVEL_KEY = 'intuition.course.activeLevel';
 
 	private readonly _onDidChangeCourse = this._register(new Emitter<void>());
 	readonly onDidChangeCourse = this._onDidChangeCourse.event;
@@ -23,13 +24,14 @@ export class CourseService extends Disposable implements ICourseService {
 
 	private provider: ICourseProvider | undefined;
 	private providerListener: IDisposable | undefined;
+	private catalog: Promise<ICourseCatalog | undefined> | undefined;
 	private course: Promise<ICourse | undefined> | undefined;
 	private lessonOrder: readonly ICourseLesson[] = [];
 	private completed = new Set<string>();
 	private storageKey: string | undefined;
 	private contentMemo = new Map<string, string>();
 	/** undefined = not read yet; null = read, absent. */
-	private cachedCourse: ICourse | null | undefined = undefined;
+	private cachedCatalog: ICourseCatalog | null | undefined = undefined;
 
 	constructor(
 		@IStorageService private readonly storageService: IStorageService
@@ -43,9 +45,10 @@ export class CourseService extends Disposable implements ICourseService {
 		}
 		this.provider = provider;
 		this.providerListener = provider.onDidChangeGenerationState(() => {
+			this.catalog = undefined;
 			this.course = undefined;
 			if (provider.getGenerationState() === CourseGenerationState.Ready) {
-				this.getCourse(); // resolves and persists the cache
+				this.getCatalog(); // resolves and persists the cache
 			}
 			this._onDidChangeCourse.fire();
 		});
@@ -61,6 +64,7 @@ export class CourseService extends Disposable implements ICourseService {
 	}
 
 	private invalidate(): void {
+		this.catalog = undefined;
 		this.course = undefined;
 		this.lessonOrder = [];
 		this.completed = new Set();
@@ -69,78 +73,114 @@ export class CourseService extends Disposable implements ICourseService {
 		this._onDidChangeCourse.fire();
 	}
 
-	getCourse(): Promise<ICourse | undefined> {
-		if (!this.course) {
-			const cached = this.readCachedCourse();
+	getCatalog(): Promise<ICourseCatalog | undefined> {
+		if (!this.catalog) {
+			const cached = this.readCachedCatalog();
 			const provider = this.provider;
 			if (cached) {
-				this.lessonOrder = cached.modules.flatMap(m => m.lessons);
-				this.storageKey = `intuition.course.progress.${cached.id}`;
-				this.loadProgress();
-				this.course = Promise.resolve(cached);
+				this.catalog = Promise.resolve(cached);
 			} else {
-				this.course = provider
-					? provider.provideCourse().then(course => {
+				this.catalog = provider
+					? provider.provideCatalog().then(catalog => {
 						// A provider change while resolving voids this result
 						if (this.provider !== provider) {
 							return undefined;
 						}
-						if (course) {
-							this.lessonOrder = course.modules.flatMap(m => m.lessons);
-							this.storageKey = `intuition.course.progress.${course.id}`;
-							this.loadProgress();
-							this.saveCache(course);
+						if (catalog) {
+							this.saveCache(catalog);
 						}
-						return course;
+						return catalog;
 					})
 					: Promise.resolve(undefined);
 			}
 		}
+		return this.catalog;
+	}
+
+	getCourse(): Promise<ICourse | undefined> {
+		if (!this.course) {
+			this.course = this.getCatalog().then(catalog => {
+				if (!catalog || !catalog.courses.length) {
+					return undefined;
+				}
+				const active = this.getActiveLevel();
+				const course = catalog.courses.find(c => c.level === active) ?? catalog.courses[0];
+				this.lessonOrder = course.modules.flatMap(m => m.lessons);
+				this.storageKey = `intuition.course.progress.${course.id}`;
+				this.loadProgress();
+				return course;
+			});
+		}
 		return this.course;
+	}
+
+	getActiveLevel(): CourseLevel {
+		const raw = this.storageService.get(CourseService.LEVEL_KEY, StorageScope.WORKSPACE);
+		if (raw === CourseLevel.Language || raw === CourseLevel.Framework || raw === CourseLevel.Codebase) {
+			return raw;
+		}
+		return CourseLevel.Codebase;
+	}
+
+	setActiveLevel(level: CourseLevel): void {
+		if (level === this.getActiveLevel()) {
+			return;
+		}
+		this.storageService.store(CourseService.LEVEL_KEY, level, StorageScope.WORKSPACE, StorageTarget.MACHINE);
+		this.course = undefined;
+		this.lessonOrder = [];
+		this._onDidChangeCourse.fire();
 	}
 
 	// --- generation lifecycle
 
-	private readCachedCourse(): ICourse | undefined {
-		if (this.cachedCourse === undefined) {
-			this.cachedCourse = null;
+	private readCachedCatalog(): ICourseCatalog | undefined {
+		if (this.cachedCatalog === undefined) {
+			this.cachedCatalog = null;
 			const raw = this.storageService.get(CourseService.CACHE_KEY, StorageScope.WORKSPACE);
 			if (raw) {
 				try {
-					this.cachedCourse = JSON.parse(raw);
+					const parsed = JSON.parse(raw);
+					// shape guard: also discards the pre-catalog single-course format
+					if (parsed && Array.isArray(parsed.courses)) {
+						this.cachedCatalog = parsed;
+					}
 				} catch {
 					// malformed cache is dropped, never fatal
 				}
 			}
 		}
-		return this.cachedCourse ?? undefined;
+		return this.cachedCatalog ?? undefined;
 	}
 
-	private saveCache(course: ICourse): void {
-		const merged: ICourse = {
-			...course,
-			modules: course.modules.map(m => ({
-				...m,
-				lessons: m.lessons.map(l => l.content === undefined && this.contentMemo.has(l.id) ? { ...l, content: this.contentMemo.get(l.id) } : l),
+	private saveCache(catalog: ICourseCatalog): void {
+		const merged: ICourseCatalog = {
+			...catalog,
+			courses: catalog.courses.map(course => ({
+				...course,
+				modules: course.modules.map(m => ({
+					...m,
+					lessons: m.lessons.map(l => l.content === undefined && this.contentMemo.has(l.id) ? { ...l, content: this.contentMemo.get(l.id) } : l),
+				})),
 			})),
 		};
 		this.storageService.store(CourseService.CACHE_KEY, JSON.stringify(merged), StorageScope.WORKSPACE, StorageTarget.MACHINE);
-		this.cachedCourse = merged;
+		this.cachedCatalog = merged;
 	}
 
 	getGenerationState(): CourseGenerationState {
-		if (this.readCachedCourse()) {
+		if (this.readCachedCatalog()) {
 			return CourseGenerationState.Ready;
 		}
 		return this.provider?.getGenerationState() ?? CourseGenerationState.NotStarted;
 	}
 
 	getGenerationProgress(): ICourseGenerationProgress | undefined {
-		return this.readCachedCourse() ? undefined : this.provider?.getGenerationProgress();
+		return this.readCachedCatalog() ? undefined : this.provider?.getGenerationProgress();
 	}
 
 	getGenerationError(): string | undefined {
-		return this.readCachedCourse() ? undefined : this.provider?.getGenerationError();
+		return this.readCachedCatalog() ? undefined : this.provider?.getGenerationError();
 	}
 
 	startGeneration(options: ICourseGenerationOptions): void {
@@ -153,8 +193,10 @@ export class CourseService extends Disposable implements ICourseService {
 
 	reindex(): void {
 		this.storageService.remove(CourseService.CACHE_KEY, StorageScope.WORKSPACE);
-		this.cachedCourse = undefined;
+		this.storageService.remove(CourseService.LEVEL_KEY, StorageScope.WORKSPACE);
+		this.cachedCatalog = undefined;
 		this.contentMemo.clear();
+		this.catalog = undefined;
 		this.course = undefined;
 		this.lessonOrder = [];
 		this.provider?.reset();
@@ -162,8 +204,8 @@ export class CourseService extends Disposable implements ICourseService {
 	}
 
 	async getLessonContent(lessonId: string): Promise<string> {
-		await this.getCourse(); // ensure the (possibly cached) course is resolved
-		const lesson = this.getLesson(lessonId);
+		const catalog = await this.getCatalog(); // ensure the (possibly cached) catalog is resolved
+		const lesson = catalog?.courses.flatMap(c => c.modules).flatMap(m => m.lessons).find(l => l.id === lessonId);
 		if (lesson?.content !== undefined) {
 			return lesson.content;
 		}
@@ -176,9 +218,8 @@ export class CourseService extends Disposable implements ICourseService {
 		}
 		const content = await this.provider.provideLessonContent(lessonId);
 		this.contentMemo.set(lessonId, content);
-		const course = await this.getCourse();
-		if (course) {
-			this.saveCache(course);
+		if (catalog) {
+			this.saveCache(catalog);
 		}
 		return content;
 	}

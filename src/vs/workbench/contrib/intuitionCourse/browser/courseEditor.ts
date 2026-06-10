@@ -44,6 +44,7 @@ export class CourseEditor extends EditorPane {
 	private contentElement: HTMLElement | undefined;
 
 	private course: ICourse | undefined;
+	private catalogCommit: string | undefined;
 	private selectedLessonId: string | undefined;
 	private selectedLevel: CourseLevel = CourseLevel.Codebase;
 	private fileCount: number | undefined;
@@ -78,6 +79,7 @@ export class CourseEditor extends EditorPane {
 		await super.setInput(input, options, context, token);
 
 		this.course = await this.courseService.getCourse();
+		this.catalogCommit = (await this.courseService.getCatalog())?.indexedCommit;
 		if (token.isCancellationRequested) {
 			return;
 		}
@@ -105,6 +107,7 @@ export class CourseEditor extends EditorPane {
 
 	private async loadAndRender(): Promise<void> {
 		this.course = await this.courseService.getCourse();
+		this.catalogCommit = (await this.courseService.getCatalog())?.indexedCommit;
 		this.render();
 	}
 
@@ -279,10 +282,10 @@ export class CourseEditor extends EditorPane {
 		}
 
 		const footer = dom.append(parent, $('.course-page-nav-footer'));
-		if (course.indexedCommit) {
+		if (this.catalogCommit) {
 			const stamp = dom.append(footer, $('span.course-page-indexed', undefined,
-				localize('coursePage.indexedAt', "indexed at {0}", course.indexedCommit)));
-			this.decorateStaleness(stamp, course.indexedCommit);
+				localize('coursePage.indexedAt', "indexed at {0}", this.catalogCommit)));
+			this.decorateStaleness(stamp, this.catalogCommit);
 		}
 		const reindex = dom.append(footer, $('button.course-page-reindex', undefined, localize('coursePage.reindex', "Re-index")));
 		this.renderDisposables.add(dom.addDisposableListener(reindex, dom.EventType.CLICK, () => {

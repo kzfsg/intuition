@@ -56,9 +56,16 @@ export interface ICourse {
 	readonly id: string;
 	readonly title: string;
 	readonly level: CourseLevel;
-	/** Short commit hash the course was indexed at; undefined outside a git repo. */
-	readonly indexedCommit?: string;
+	/** One-line, learner-facing summary shown on the course home. */
+	readonly description?: string;
 	readonly modules: readonly ICourseModule[];
+}
+
+export interface ICourseCatalog {
+	/** Short commit hash the catalog was indexed at; undefined outside a git repo. */
+	readonly indexedCommit?: string;
+	/** One course per level (a level may be absent). Lesson ids are catalog-unique. */
+	readonly courses: readonly ICourse[];
 }
 
 /**

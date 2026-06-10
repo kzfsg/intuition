@@ -6,7 +6,7 @@
 import { Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { CourseLevel, ICourse, ICourseLesson, LessonState } from './course.js';
+import { CourseLevel, ICourse, ICourseCatalog, ICourseLesson, LessonState } from './course.js';
 
 export const ICourseService = createDecorator<ICourseService>('intuitionCourseService');
 
@@ -45,8 +45,8 @@ export interface ICourseProvider {
 	cancelGeneration(): void;
 	/** Ready/Error -> NotStarted (re-index). */
 	reset(): void;
-	/** Resolves the course outline; undefined unless Ready. */
-	provideCourse(): Promise<ICourse | undefined>;
+	/** Resolves the catalog of per-level course outlines; undefined unless Ready. */
+	provideCatalog(): Promise<ICourseCatalog | undefined>;
 	/** Resolves a lazy lesson body (markdown). */
 	provideLessonContent(lessonId: string): Promise<string>;
 }
@@ -66,8 +66,15 @@ export interface ICourseService {
 
 	registerProvider(provider: ICourseProvider): IDisposable;
 
-	/** Resolves (and caches) the course from the registered provider. */
+	/** Resolves (and caches) the per-level catalog from the registered provider. */
+	getCatalog(): Promise<ICourseCatalog | undefined>;
+
+	/** Resolves the active level's course from the catalog. */
 	getCourse(): Promise<ICourse | undefined>;
+
+	/** The level whose course getCourse() resolves. Persisted per workspace; default Codebase. */
+	getActiveLevel(): CourseLevel;
+	setActiveLevel(level: CourseLevel): void;
 
 	/** Cached course present => Ready regardless of the provider. */
 	getGenerationState(): CourseGenerationState;

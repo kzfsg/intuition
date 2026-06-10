@@ -9,7 +9,7 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
 import { TestStorageService } from '../../../../test/common/workbenchTestServices.js';
 import { CourseService } from '../../browser/courseServiceImpl.js';
-import { CourseLevel, ICourse, LessonState } from '../../common/course.js';
+import { CourseLevel, ICourse, ICourseCatalog, LessonState } from '../../common/course.js';
 import { CourseGenerationState, ICourseGenerationOptions, ICourseGenerationProgress, ICourseProvider } from '../../common/courseService.js';
 
 const testCourse: ICourse = {
@@ -31,6 +31,25 @@ const testCourse: ICourse = {
 	]
 };
 
+const langCourse: ICourse = {
+	id: 'lang-course',
+	title: 'lang course',
+	level: CourseLevel.Language,
+	modules: [
+		{
+			id: 'lm1', title: 'lang module', lessons: [
+				{ id: 'lang-l1', title: 'lang first', content: '# lang one' },
+				{ id: 'lang-l2', title: 'lang second' }, // lazy
+			]
+		}
+	]
+};
+
+const testCatalog: ICourseCatalog = {
+	indexedCommit: 'abc1234',
+	courses: [testCourse, langCourse],
+};
+
 class TestProvider implements ICourseProvider {
 	private readonly _onDidChangeGenerationState = new Emitter<void>();
 	readonly onDidChangeGenerationState = this._onDidChangeGenerationState.event;
@@ -40,7 +59,7 @@ class TestProvider implements ICourseProvider {
 	error: string | undefined;
 	contentRequests: string[] = [];
 
-	constructor(private course: ICourse | undefined = testCourse) { }
+	constructor(private catalog: ICourseCatalog | undefined = testCatalog) { }
 
 	getGenerationState() { return this.state; }
 	getGenerationProgress() { return this.progress; }
@@ -48,7 +67,7 @@ class TestProvider implements ICourseProvider {
 	startGeneration(_options: ICourseGenerationOptions) { this.setState(CourseGenerationState.Indexing); }
 	cancelGeneration() { this.setState(CourseGenerationState.NotStarted); }
 	reset() { this.setState(CourseGenerationState.NotStarted); }
-	async provideCourse() { return this.state === CourseGenerationState.Ready ? this.course : undefined; }
+	async provideCatalog() { return this.state === CourseGenerationState.Ready ? this.catalog : undefined; }
 	async provideLessonContent(lessonId: string) { this.contentRequests.push(lessonId); return `lazy:${lessonId}`; }
 	setState(state: CourseGenerationState) { this.state = state; this._onDidChangeGenerationState.fire(); }
 }
@@ -142,7 +161,7 @@ suite('Intuition Course Service', () => {
 		assert.strictEqual(service.getLesson('nope'), undefined);
 	});
 
-	// --- generation lifecycle (sub-project A)
+	// --- generation lifecycle
 
 	test('generation state forwards from the provider; no provider means NotStarted', () => {
 		const { service } = createService();
@@ -167,7 +186,7 @@ suite('Intuition Course Service', () => {
 		assert.ok(fired >= 2);
 	});
 
-	test('reaching Ready caches the course; a fresh service serves it without a ready provider', async () => {
+	test('reaching Ready caches the catalog; a fresh service serves it without a ready provider', async () => {
 		const storageService = new TestStorageService();
 		const { service } = createService(storageService);
 		store.add(service.registerProvider(new TestProvider()));
@@ -179,6 +198,7 @@ suite('Intuition Course Service', () => {
 		store.add(second.registerProvider(coldProvider));
 		assert.strictEqual(second.getGenerationState(), CourseGenerationState.Ready);
 		assert.strictEqual((await second.getCourse())?.id, 'test-course');
+		assert.strictEqual((await second.getCatalog())?.indexedCommit, 'abc1234');
 	});
 
 	test('getLessonContent: eager content served directly, lazy resolved once and memoized', async () => {
@@ -207,16 +227,18 @@ suite('Intuition Course Service', () => {
 		assert.deepStrictEqual(coldProvider.contentRequests, []);
 	});
 
-	test('reindex clears the cache, resets the provider, and fires change', async () => {
+	test('reindex clears the cache, resets the provider and active level, and fires change', async () => {
 		const { service } = createService();
 		const provider = new TestProvider();
 		store.add(service.registerProvider(provider));
 		await service.getCourse();
+		service.setActiveLevel(CourseLevel.Language);
 		let fired = 0;
 		store.add(service.onDidChangeCourse(() => fired++));
 		service.reindex();
 		assert.strictEqual(provider.state, CourseGenerationState.NotStarted);
 		assert.strictEqual(service.getGenerationState(), CourseGenerationState.NotStarted);
+		assert.strictEqual(service.getActiveLevel(), CourseLevel.Codebase);
 		assert.strictEqual(await service.getCourse(), undefined);
 		assert.ok(fired >= 1);
 	});
@@ -229,5 +251,74 @@ suite('Intuition Course Service', () => {
 		provider.state = CourseGenerationState.NotStarted;
 		store.add(service.registerProvider(provider));
 		assert.strictEqual(service.getGenerationState(), CourseGenerationState.NotStarted);
+	});
+
+	// --- levels & catalog
+
+	test('getCourse resolves the active level (default Codebase)', async () => {
+		const { service } = createService();
+		store.add(service.registerProvider(new TestProvider()));
+		assert.strictEqual(service.getActiveLevel(), CourseLevel.Codebase);
+		assert.strictEqual((await service.getCourse())?.id, 'test-course');
+	});
+
+	test('setActiveLevel switches the course and fires onDidChangeCourse', async () => {
+		const { service } = createService();
+		store.add(service.registerProvider(new TestProvider()));
+		await service.getCourse();
+		let fired = 0;
+		store.add(service.onDidChangeCourse(() => fired++));
+		service.setActiveLevel(CourseLevel.Language);
+		assert.strictEqual(service.getActiveLevel(), CourseLevel.Language);
+		assert.strictEqual((await service.getCourse())?.id, 'lang-course');
+		assert.ok(fired >= 1);
+	});
+
+	test('progress is isolated per level', async () => {
+		const { service } = createService();
+		store.add(service.registerProvider(new TestProvider()));
+		await service.getCourse();
+		service.completeLesson('l1');
+		assert.deepStrictEqual(service.getProgress(), { done: 1, total: 3 });
+		service.setActiveLevel(CourseLevel.Language);
+		await service.getCourse();
+		assert.deepStrictEqual(service.getProgress(), { done: 0, total: 2 });
+		service.setActiveLevel(CourseLevel.Codebase);
+		await service.getCourse();
+		assert.deepStrictEqual(service.getProgress(), { done: 1, total: 3 });
+	});
+
+	test('active level persists across service instances sharing storage', async () => {
+		const storageService = new TestStorageService();
+		const { service } = createService(storageService);
+		store.add(service.registerProvider(new TestProvider()));
+		service.setActiveLevel(CourseLevel.Framework);
+		const second = store.add(new CourseService(storageService));
+		assert.strictEqual(second.getActiveLevel(), CourseLevel.Framework);
+	});
+
+	test('unknown active level falls back to the first course in the catalog', async () => {
+		const { service } = createService();
+		store.add(service.registerProvider(new TestProvider()));
+		service.setActiveLevel(CourseLevel.Framework); // catalog has no framework course
+		assert.strictEqual((await service.getCourse())?.id, 'test-course');
+	});
+
+	test('old single-course cache format is discarded', () => {
+		const storageService = new TestStorageService();
+		storageService.store('intuition.course.cache', JSON.stringify({ id: 'old', title: 'old', level: 'codebase', modules: [] }), StorageScope.WORKSPACE, StorageTarget.MACHINE);
+		const { service } = createService(storageService);
+		const provider = new TestProvider();
+		provider.state = CourseGenerationState.NotStarted;
+		store.add(service.registerProvider(provider));
+		assert.strictEqual(service.getGenerationState(), CourseGenerationState.NotStarted);
+	});
+
+	test('lazy content resolves across levels (catalog-unique ids)', async () => {
+		const { service } = createService();
+		const provider = new TestProvider();
+		store.add(service.registerProvider(provider));
+		service.setActiveLevel(CourseLevel.Language);
+		assert.strictEqual(await service.getLessonContent('lang-l2'), 'lazy:lang-l2');
 	});
 });
