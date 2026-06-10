@@ -13,14 +13,16 @@ import { InstantiationType, registerSingleton } from '../../../../platform/insta
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
+import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { EditorExtensions, IEditorFactoryRegistry } from '../../../common/editor.js';
 import { Extensions as ViewContainerExtensions, IViewContainersRegistry, IViewsRegistry, ViewContainerLocation } from '../../../common/views.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { IFilesConfigurationService } from '../../../services/filesConfiguration/common/filesConfigurationService.js';
-import { COURSE_CONTAINER_ID, COURSE_VIEW_ID, OPEN_LESSON_COMMAND_ID, RESET_PROGRESS_COMMAND_ID } from '../common/course.js';
+import { COURSE_CONTAINER_ID, COURSE_VIEW_ID, OPEN_COURSE_COMMAND_ID, OPEN_LESSON_COMMAND_ID, RESET_PROGRESS_COMMAND_ID } from '../common/course.js';
 import { ICourseService } from '../common/courseService.js';
-import { CourseLessonContentProvider } from './courseLessonContentProvider.js';
+import { CourseEditor } from './courseEditor.js';
+import { CourseEditorInput, CourseEditorInputSerializer, ICourseEditorOptions } from './courseEditorInput.js';
 import { CoursePane } from './coursePane.js';
 import { CourseService } from './courseServiceImpl.js';
 import { MockCourseProvider } from './mockCourseProvider.js';
@@ -55,9 +57,22 @@ Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry).registerViews
 	},
 }], viewContainer);
 
-// --- lesson documents & the v1 course provider
+// --- course page editor
 
-registerWorkbenchContribution2(CourseLessonContentProvider.ID, CourseLessonContentProvider, WorkbenchPhase.BlockRestore);
+Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
+	EditorPaneDescriptor.create(
+		CourseEditor,
+		CourseEditor.ID,
+		localize('course', "Course")
+	),
+	[
+		new SyncDescriptor(CourseEditorInput)
+	]
+);
+
+Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEditorSerializer(CourseEditorInput.ID, CourseEditorInputSerializer);
+
+// --- the v1 course provider
 
 class CourseProviderContribution extends Disposable implements IWorkbenchContribution {
 
@@ -73,6 +88,28 @@ registerWorkbenchContribution2(CourseProviderContribution.ID, CourseProviderCont
 
 // --- commands
 
+registerAction2(class OpenCourseAction extends Action2 {
+	constructor() {
+		super({
+			id: OPEN_COURSE_COMMAND_ID,
+			title: localize2('course.open', "Open Course Page"),
+			category: localize2('intuition', "Intuition"),
+			icon: Codicon.book,
+			f1: true,
+			menu: {
+				id: MenuId.ViewTitle,
+				when: ContextKeyExpr.equals('view', COURSE_VIEW_ID),
+				group: 'navigation',
+				order: 1,
+			},
+		});
+	}
+
+	override async run(accessor: ServicesAccessor): Promise<void> {
+		await accessor.get(IEditorService).openEditor(new CourseEditorInput({}), { pinned: false });
+	}
+});
+
 registerAction2(class OpenLessonAction extends Action2 {
 	constructor() {
 		super({
@@ -83,19 +120,8 @@ registerAction2(class OpenLessonAction extends Action2 {
 	}
 
 	override async run(accessor: ServicesAccessor, lessonId: string): Promise<void> {
-		const courseService = accessor.get(ICourseService);
-		const editorService = accessor.get(IEditorService);
-		const filesConfigurationService = accessor.get(IFilesConfigurationService);
-
-		const course = await courseService.getCourse();
-		const lesson = lessonId ? courseService.getLesson(lessonId) : undefined;
-		if (!course || !lesson) {
-			return;
-		}
-
-		const resource = CourseLessonContentProvider.toLessonResource(course.id, lesson.id);
-		await filesConfigurationService.updateReadonly(resource, true);
-		await editorService.openEditor({ resource, options: { pinned: false } });
+		const options: ICourseEditorOptions = { selectedLessonId: lessonId, pinned: false };
+		await accessor.get(IEditorService).openEditor(new CourseEditorInput(options), options);
 	}
 });
 
@@ -111,6 +137,7 @@ registerAction2(class ResetCourseProgressAction extends Action2 {
 				id: MenuId.ViewTitle,
 				when: ContextKeyExpr.equals('view', COURSE_VIEW_ID),
 				group: 'navigation',
+				order: 2,
 			},
 		});
 	}

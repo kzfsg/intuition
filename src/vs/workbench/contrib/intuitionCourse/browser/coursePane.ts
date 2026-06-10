@@ -88,16 +88,6 @@ export class CoursePane extends ViewPane {
 				this.renderLesson(list, lesson);
 			}
 		}
-
-		const active = this.activeLesson(this.course);
-		if (active?.quiz) {
-			this.renderQuiz(this.courseRoot, active);
-		}
-	}
-
-	private activeLesson(course: ICourse): ICourseLesson | undefined {
-		return course.modules.flatMap(m => m.lessons)
-			.find(l => this.courseService.getLessonState(l.id) === LessonState.Active);
 	}
 
 	private renderCourseHeader(parent: HTMLElement, course: ICourse): void {
@@ -137,30 +127,6 @@ export class CoursePane extends ViewPane {
 				this.commandService.executeCommand(OPEN_LESSON_COMMAND_ID, lesson.id);
 			}));
 		}
-	}
-
-	private renderQuiz(parent: HTMLElement, lesson: ICourseLesson): void {
-		const quiz = lesson.quiz!;
-		const box = dom.append(parent, $('.course-quiz'));
-		dom.append(box, $('.course-quiz-label', undefined, localize('course.quiz', "check your understanding")));
-		dom.append(box, $('.course-quiz-question', undefined, quiz.question));
-
-		const opts = dom.append(box, $('.course-quiz-options'));
-		quiz.options.forEach((option, i) => {
-			const btn = dom.append(opts, $('button.course-quiz-option', {
-				'aria-label': localize('course.quizOption', "Answer: {0}", option)
-			}));
-			dom.append(btn, $('span.course-quiz-key', undefined, String.fromCharCode(97 + i)));
-			dom.append(btn, $('span', undefined, option));
-			this.renderDisposables.add(dom.addDisposableListener(btn, dom.EventType.CLICK, () => {
-				if (i === quiz.correctIndex) {
-					// completing re-renders the pane via onDidChangeProgress
-					this.courseService.completeLesson(lesson.id);
-				} else {
-					btn.classList.add('incorrect');
-				}
-			}));
-		});
 	}
 
 	private stateLabel(state: LessonState): string {
