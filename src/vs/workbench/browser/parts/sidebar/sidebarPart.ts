@@ -202,6 +202,8 @@ export class SidebarPart extends AbstractPaneCompositePart {
 			icon: true,
 			orientation: ActionsOrientation.HORIZONTAL,
 			recomputeSizes: true,
+			// Intuition: Cursor-style — unpinned containers live in the overflow dropdown.
+			showHiddenItemsInOverflow: true,
 			activityHoverOptions: {
 				position: () => this.getCompositeBarPosition() === CompositeBarPosition.BOTTOM ? HoverPosition.ABOVE : HoverPosition.BELOW,
 			},

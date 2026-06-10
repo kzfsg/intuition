@@ -148,6 +148,8 @@ export interface ICompositeBarOptions {
 	readonly dndHandler: ICompositeDragAndDrop;
 	readonly activityHoverOptions: IActivityHoverOptions;
 	readonly preventLoopNavigation?: boolean;
+	/** Intuition: keep the overflow dropdown visible and list unpinned composites in it (Cursor-style chevron). */
+	readonly showHiddenItemsInOverflow?: boolean;
 
 	readonly getActivityAction: (compositeId: string) => CompositeBarAction;
 	readonly getCompositePinnedAction: (compositeId: string) => IAction;
@@ -535,6 +537,12 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		let size = 0;
 		const limit = this.options.orientation === ActionsOrientation.VERTICAL ? this.dimension.height : this.dimension.width;
 
+		// Intuition: with showHiddenItemsInOverflow, the dropdown also represents
+		// unpinned composites, so it must show whenever anything is not in the bar.
+		const hasOverflow = () => this.options.showHiddenItemsInOverflow
+			? this.model.visibleItems.some(item => !compositesToShow.includes(item.id))
+			: totalComposites > compositesToShow.length;
+
 		// Add composites while they fit
 		for (let i = 0; i < compositesToShow.length; i++) {
 			const compositeSize = this.compositeSizeInBar.get(compositesToShow[i])!;
@@ -567,7 +575,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		}
 
 		// We are overflowing, add the overflow size
-		if (totalComposites > compositesToShow.length) {
+		if (hasOverflow()) {
 			size += this.options.overflowActionSize;
 		}
 
@@ -579,7 +587,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		}
 
 		// Remove the overflow action if there are no overflows
-		if (totalComposites === compositesToShow.length && this.compositeOverflowAction.value) {
+		if (!hasOverflow() && this.compositeOverflowAction.value) {
 			compositeSwitcherBar.pull(compositeSwitcherBar.length() - 1);
 
 			this.compositeOverflowAction.value = undefined;
@@ -613,7 +621,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		});
 
 		// Add overflow action as needed
-		if (totalComposites > compositesToShow.length && !this.compositeOverflowAction.value) {
+		if (hasOverflow() && !this.compositeOverflowAction.value) {
 			this.compositeOverflowAction.value = this.instantiationService.createInstance(CompositeOverflowActivityAction, () => {
 				this.compositeOverflowActionViewItem.value?.showMenu();
 			});
@@ -640,7 +648,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 	}
 
 	private getOverflowingComposites(): { id: string; name?: string }[] {
-		let overflowingIds = this.model.visibleItems.filter(item => item.pinned).map(item => item.id);
+		let overflowingIds = this.model.visibleItems.filter(item => item.pinned || this.options.showHiddenItemsInOverflow).map(item => item.id);
 
 		// Show the active composite even if it is not pinned
 		if (this.model.activeItem && !this.model.activeItem.pinned) {

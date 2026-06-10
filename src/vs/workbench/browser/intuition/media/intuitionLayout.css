@@ -4,13 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 /* Cursor-style: center the horizontal activity icon row in the sidebar header.
- * Selectors only match when the activity bar is on top ('.title > .composite-bar-container'
- * exists only in that layout), so side/bottom layouts are unaffected. */
+ * With the activity bar on top, the row renders under '.header-or-footer.header'
+ * (verified against the live DOM); these selectors do not exist in side/bottom
+ * layouts, so those are unaffected. */
+.monaco-workbench .part.sidebar > .header-or-footer > .composite-bar-container,
 .monaco-workbench .part.sidebar > .title > .composite-bar-container {
 	flex: 1;
 	justify-content: center;
 }
 
+.monaco-workbench .part.sidebar > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .actions-container,
 .monaco-workbench .part.sidebar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .actions-container {
 	justify-content: center;
 }

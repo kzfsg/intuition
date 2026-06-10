@@ -83,6 +83,8 @@ export interface IPaneCompositeBarOptions {
 	readonly activityHoverOptions: IActivityHoverOptions;
 	readonly fillExtraContextMenuActions: (actions: IAction[], e?: MouseEvent | GestureEvent) => void;
 	readonly colors: (theme: IColorTheme) => ICompositeBarColors;
+	/** Intuition: keep the overflow dropdown visible and list unpinned composites in it (Cursor-style chevron). */
+	readonly showHiddenItemsInOverflow?: boolean;
 }
 
 export class PaneCompositeBar extends Disposable {
@@ -151,6 +153,7 @@ export class PaneCompositeBar extends Disposable {
 			compositeSize: this.options.compositeSize,
 			overflowActionSize: this.options.overflowActionSize,
 			colors: theme => this.options.colors(theme),
+			showHiddenItemsInOverflow: this.options.showHiddenItemsInOverflow,
 		}));
 	}
 
