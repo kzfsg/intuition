@@ -1,0 +1,26 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Title-bar Course button: always-visible icon + label (Cursor's "Upgrade to Pro" slot). */
+.monaco-workbench .intuition-course-titlebar-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 5px;
+	cursor: pointer;
+	color: var(--vscode-foreground);
+}
+
+.monaco-workbench .intuition-course-titlebar-item:hover,
+.monaco-workbench .intuition-course-titlebar-item:focus-visible {
+	background-color: var(--vscode-toolbar-hoverBackground);
+	outline: none;
+}
+
+.monaco-workbench .intuition-course-titlebar-item > .intuition-course-titlebar-icon {
+	font-size: 16px;
+}

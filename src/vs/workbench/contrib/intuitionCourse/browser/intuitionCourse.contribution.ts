@@ -3,59 +3,37 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import './media/courseTitleBar.css';
+import { $, append } from '../../../../base/browser/dom.js';
+import { BaseActionViewItem, IBaseActionViewItemOptions } from '../../../../base/browser/ui/actionbar/actionViewItems.js';
+import { getDefaultHoverDelegate } from '../../../../base/browser/ui/hover/hoverDelegateFactory.js';
+import { IAction } from '../../../../base/common/actions.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
+import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize, localize2 } from '../../../../nls.js';
-import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
+import { IActionViewItemService } from '../../../../platform/actions/browser/actionViewItemService.js';
+import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
-import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
 import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
-import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
+import { TitleBarLeadingActionsGroup } from '../../../browser/parts/titlebar/titlebarActions.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { EditorExtensions, IEditorFactoryRegistry } from '../../../common/editor.js';
-import { Extensions as ViewContainerExtensions, IViewContainersRegistry, IViewsRegistry, ViewContainerLocation } from '../../../common/views.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { COURSE_CONTAINER_ID, COURSE_VIEW_ID, OPEN_COURSE_COMMAND_ID, OPEN_LESSON_COMMAND_ID, RESET_PROGRESS_COMMAND_ID } from '../common/course.js';
+import { OPEN_COURSE_COMMAND_ID, OPEN_LESSON_COMMAND_ID, RESET_PROGRESS_COMMAND_ID } from '../common/course.js';
 import { ICourseService } from '../common/courseService.js';
 import { CourseEditor } from './courseEditor.js';
 import { CourseEditorInput, CourseEditorInputSerializer, ICourseEditorOptions } from './courseEditorInput.js';
-import { CoursePane } from './coursePane.js';
 import { CourseService } from './courseServiceImpl.js';
 import { MockCourseProvider } from './mockCourseProvider.js';
 
 // --- service
 
 registerSingleton(ICourseService, CourseService, InstantiationType.Delayed);
-
-// --- view container & view
-
-const courseViewIcon = registerIcon('intuition-course-view-icon', Codicon.mortarBoard, localize('courseViewIcon', 'View icon of the Intuition course view.'));
-
-const viewContainer = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry).registerViewContainer({
-	id: COURSE_CONTAINER_ID,
-	title: localize2('course', "Course"),
-	icon: courseViewIcon,
-	order: 2,
-	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [COURSE_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
-	storageId: 'workbench.intuitionCourse.state',
-}, ViewContainerLocation.Sidebar);
-
-Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry).registerViews([{
-	id: COURSE_VIEW_ID,
-	name: localize2('course', "Course"),
-	containerIcon: courseViewIcon,
-	ctorDescriptor: new SyncDescriptor(CoursePane),
-	canToggleVisibility: false,
-	canMoveView: true,
-	openCommandActionDescriptor: {
-		id: 'workbench.actions.view.intuitionCourse',
-		order: 2,
-	},
-}], viewContainer);
 
 // --- course page editor
 
@@ -86,6 +64,65 @@ class CourseProviderContribution extends Disposable implements IWorkbenchContrib
 
 registerWorkbenchContribution2(CourseProviderContribution.ID, CourseProviderContribution, WorkbenchPhase.AfterRestored);
 
+// --- title bar Course button (Cursor's "Upgrade to Pro" slot)
+
+MenuRegistry.appendMenuItem(MenuId.TitleBar, {
+	command: {
+		id: OPEN_COURSE_COMMAND_ID,
+		title: localize2('course.titleBar', "Course"),
+		icon: Codicon.mortarBoard,
+	},
+	group: TitleBarLeadingActionsGroup,
+	order: 0,
+});
+
+/** Renders the title-bar Course entry as an always-visible icon + label button. */
+class CourseTitleBarWidget extends BaseActionViewItem {
+
+	constructor(
+		action: IAction,
+		options: IBaseActionViewItemOptions | undefined,
+		@IHoverService private readonly hoverService: IHoverService,
+	) {
+		super(undefined, action, options);
+	}
+
+	override render(container: HTMLElement): void {
+		super.render(container);
+
+		container.classList.add('intuition-course-titlebar-item');
+		container.setAttribute('role', 'button');
+
+		const hoverText = localize('course.titleBarHover', "Open Course Page");
+		container.setAttribute('aria-label', hoverText);
+		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), container, hoverText));
+
+		const icon = append(container, $('span.intuition-course-titlebar-icon'));
+		icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.mortarBoard));
+		icon.setAttribute('aria-hidden', 'true');
+
+		const label = append(container, $('span.intuition-course-titlebar-label'));
+		label.textContent = localize('course.titleBarLabel', "Course");
+	}
+}
+
+class CourseTitleBarContribution extends Disposable implements IWorkbenchContribution {
+
+	static readonly ID = 'workbench.contrib.intuitionCourseTitleBar';
+
+	constructor(
+		@IActionViewItemService actionViewItemService: IActionViewItemService,
+		@IInstantiationService instantiationService: IInstantiationService,
+	) {
+		super();
+		this._register(actionViewItemService.register(MenuId.TitleBar, OPEN_COURSE_COMMAND_ID, (action, options) => {
+			return instantiationService.createInstance(CourseTitleBarWidget, action, options);
+		}, undefined));
+	}
+}
+
+registerWorkbenchContribution2(CourseTitleBarContribution.ID, CourseTitleBarContribution, WorkbenchPhase.BlockRestore);
+
 // --- commands
 
 registerAction2(class OpenCourseAction extends Action2 {
@@ -96,12 +133,6 @@ registerAction2(class OpenCourseAction extends Action2 {
 			category: localize2('intuition', "Intuition"),
 			icon: Codicon.book,
 			f1: true,
-			menu: {
-				id: MenuId.ViewTitle,
-				when: ContextKeyExpr.equals('view', COURSE_VIEW_ID),
-				group: 'navigation',
-				order: 1,
-			},
 		});
 	}
 
@@ -133,12 +164,6 @@ registerAction2(class ResetCourseProgressAction extends Action2 {
 			category: localize2('intuition', "Intuition"),
 			icon: Codicon.discard,
 			f1: true,
-			menu: {
-				id: MenuId.ViewTitle,
-				when: ContextKeyExpr.equals('view', COURSE_VIEW_ID),
-				group: 'navigation',
-				order: 2,
-			},
 		});
 	}
 

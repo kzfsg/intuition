@@ -16,8 +16,6 @@
 /** URI scheme of the Course page editor input resource. */
 export const COURSE_PAGE_SCHEME = 'intuition-course';
 
-export const COURSE_CONTAINER_ID = 'workbench.viewContainer.intuitionCourse';
-export const COURSE_VIEW_ID = 'workbench.view.intuitionCourse';
 export const COURSE_EDITOR_ID = 'workbench.editor.intuitionCourse';
 export const OPEN_COURSE_COMMAND_ID = 'intuition.course.open';
 export const OPEN_LESSON_COMMAND_ID = 'intuition.course.openLesson';
