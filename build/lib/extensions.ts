@@ -315,6 +315,11 @@ const excludedExtensions = [
 	'vscode-test-resolver',
 	'ms-vscode.node-debug',
 	'ms-vscode.node-debug2',
+	// Intuition: legacy task runners / language features excluded from the product
+	'grunt',
+	'gulp',
+	'jake',
+	'php-language-features',
 ];
 
 const marketplaceWebExtensionsExclude = new Set([
