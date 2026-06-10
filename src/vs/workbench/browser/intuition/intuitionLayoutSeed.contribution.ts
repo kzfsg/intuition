@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import './media/intuitionLayout.css';
 import { IStorageService, StorageScope, StorageTarget } from '../../../platform/storage/common/storage.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../common/contributions.js';
 import { INTUITION_LAYOUT_SEED_MARKER_KEY, INTUITION_PINNED_VIEWLETS_SEED, PINNED_VIEWLETS_STORAGE_KEY } from '../../common/intuition/intuitionLayoutSeed.js';

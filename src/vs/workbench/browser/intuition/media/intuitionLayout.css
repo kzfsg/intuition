@@ -1,0 +1,16 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Cursor-style: center the horizontal activity icon row in the sidebar header.
+ * Selectors only match when the activity bar is on top ('.title > .composite-bar-container'
+ * exists only in that layout), so side/bottom layouts are unaffected. */
+.monaco-workbench .part.sidebar > .title > .composite-bar-container {
+	flex: 1;
+	justify-content: center;
+}
+
+.monaco-workbench .part.sidebar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .actions-container {
+	justify-content: center;
+}
