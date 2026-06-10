@@ -6,7 +6,7 @@
 
 ## Problem
 
-Intuition ships with VS Code's default layout and first-run surfaces: welcome page, onboarding wizard, tips, upsell notifications, and surveys. Our users — coders choosing between VS Code, Cursor, and Intuition — expect a clean, minimal IDE like Cursor (reference: `references/Cursor Layout.png`). The clutter dilutes the product and buries our future Course tab.
+Intuition ships with VS Code's default layout and first-run surfaces: welcome page, onboarding wizard, tips, upsell notifications, and surveys. Our users — coders choosing between VS Code, Cursor, and Intuition — expect a clean, minimal IDE like Cursor (reference: `references/cursor-layout.png`). The clutter dilutes the product and buries our future Course tab.
 
 ## Goals
 

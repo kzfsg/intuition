@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>intuition — the ide that teaches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* graphite neutral base — instinct.so-inspired, never pure black */
+    --bg:        #08080a;
+    --bg-2:      #0c0c0f;
+    --surface:   rgba(255, 255, 255, 0.024);
+    --surface-2: rgba(255, 255, 255, 0.04);
+    --hair:      rgba(255, 255, 255, 0.075);
+    --hair-2:    rgba(255, 255, 255, 0.14);
+    --ink:       #ececed;
+    --ink-dim:   #9a9aa4;
+    --ink-faint: #56565f;
+
+    /* the spectrum — rare, electric, never decorative wallpaper */
+    --mag:  #d946ef;
+    --vio:  #7c3aed;
+    --cyan: #22d3ee;
+    --spectrum: linear-gradient(105deg, var(--mag) 0%, var(--vio) 48%, var(--cyan) 100%);
+
+    --rail: 56px;
+    --ease: cubic-bezier(0.22, 0.72, 0.2, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  ::selection { background: rgba(124, 58, 237, 0.32); color: #fff; }
+
+  /* ---------- atmosphere: a single faint spectrum bloom + grain ---------- */
+  .bloom {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(46vw 46vw at 86% 8%, rgba(124, 58, 237, 0.16), transparent 60%),
+      radial-gradient(40vw 40vw at 98% 30%, rgba(34, 211, 238, 0.10), transparent 62%),
+      radial-gradient(38vw 38vw at 72% -6%, rgba(217, 70, 239, 0.10), transparent 60%);
+    filter: saturate(1.1);
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-2.5%, 2%, 0) scale(1.08); }
+  }
+  .grain {
+    position: fixed; inset: -50%; z-index: 1; pointer-events: none; opacity: 0.45;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+    mix-blend-mode: overlay;
+    animation: grainshift 6s steps(5) infinite;
+  }
+  @keyframes grainshift {
+    0%{transform:translate(0,0)} 20%{transform:translate(-4%,3%)} 40%{transform:translate(3%,-2%)}
+    60%{transform:translate(-2%,-3%)} 80%{transform:translate(2%,4%)} 100%{transform:translate(0,0)}
+  }
+  .vignette {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.55);
+  }
+
+  /* ---------- app shell ---------- */
+  .app {
+    position: relative; z-index: 2;
+    display: grid; grid-template-columns: var(--rail) 1fr;
+    height: 100vh;
+  }
+
+  /* faux activity rail — ties it to the IDE; course tab is the hero */
+  .rail {
+    border-right: 1px solid var(--hair);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 14px 0; gap: 4px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.012), transparent 40%);
+  }
+  .rail .mark {
+    width: 26px; height: 26px; margin-bottom: 16px;
+    border-radius: 7px; background: var(--spectrum);
+    display: grid; place-items: center;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 6px 20px -6px rgba(124,58,237,0.7);
+  }
+  .rail .mark svg { width: 15px; height: 15px; display: block; }
+  .rail button {
+    width: 40px; height: 40px; border: 0; background: transparent; cursor: pointer;
+    color: var(--ink-faint); border-radius: 9px; position: relative;
+    display: grid; place-items: center; transition: color 0.2s var(--ease), background 0.2s var(--ease);
+  }
+  .rail button svg { width: 19px; height: 19px; }
+  .rail button:hover { color: var(--ink-dim); background: var(--surface); }
+  .rail button.active { color: var(--ink); }
+  .rail button.active::before {
+    content: ""; position: absolute; left: -8px; top: 9px; bottom: 9px; width: 2.5px;
+    border-radius: 3px; background: var(--spectrum);
+    box-shadow: 0 0 12px 1px rgba(124,58,237,0.8);
+  }
+  .rail .spacer { flex: 1; }
+
+  /* ---------- canvas ---------- */
+  .canvas {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: 0 clamp(28px, 5vw, 80px);
+  }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 2px 0; font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .topbar .brand { color: var(--ink-dim); }
+  .topbar .brand b { color: var(--ink); font-weight: 500; }
+  .topbar .status { display: inline-flex; align-items: center; gap: 8px; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--spectrum);
+    box-shadow: 0 0 0 0 rgba(124,58,237,0.55); animation: pulse 2.6s var(--ease) infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
+    70%  { box-shadow: 0 0 0 7px rgba(124,58,237,0); }
+    100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+  }
+
+  .main {
+    flex: 1; display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.92fr);
+    gap: clamp(28px, 4vw, 72px); align-items: center;
+    padding: 12px 2px 0;
+  }
+  @media (max-width: 1040px) {
+    .main { grid-template-columns: 1fr; align-content: center; gap: 36px; }
+    .course { display: none; }
+  }
+
+  /* ---------- hero ---------- */
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 26px;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow .line { width: 30px; height: 1px; background: var(--hair-2); }
+
+  h1 {
+    font-weight: 200; font-size: clamp(3rem, 8.2vw, 6.6rem); line-height: 0.92;
+    letter-spacing: -0.045em; text-transform: lowercase; color: var(--ink);
+  }
+  h1 .spectrum {
+    background: var(--spectrum); background-size: 220% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-weight: 300;
+    animation: shimmer 9s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: 220% 0; } }
+
+  .lede {
+    margin-top: 30px; max-width: 36ch; font-size: clamp(15px, 1.15vw, 17.5px);
+    line-height: 1.62; color: var(--ink-dim); font-weight: 300;
+  }
+  .lede b { color: var(--ink); font-weight: 400; }
+
+  .actions { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    font-family: "Inter", sans-serif; font-size: 14px; font-weight: 400;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--hair);
+    padding: 12px 18px; border-radius: 11px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 10px;
+    transition: border-color 0.25s var(--ease), background 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+  .btn svg { width: 16px; height: 16px; opacity: 0.85; }
+  .btn:hover { background: var(--surface-2); transform: translateY(-1px); }
+  .btn .kbd {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--ink-faint);
+    border: 1px solid var(--hair); border-radius: 5px; padding: 2px 5px; margin-left: 2px;
+  }
+  .btn.primary {
+    position: relative; border-color: transparent; background: rgba(255,255,255,0.035);
+  }
+  .btn.primary::after {
+    content: ""; position: absolute; inset: 0; border-radius: 11px; padding: 1px;
+    background: var(--spectrum);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0.55; transition: opacity 0.25s var(--ease);
+  }
+  .btn.primary:hover::after { opacity: 1; }
+  .btn.primary:hover { box-shadow: 0 10px 34px -14px rgba(124,58,237,0.8); }
+
+  .recents {
+    margin-top: 46px; font-family: "IBM Plex Mono", monospace; font-size: 11px;
+    letter-spacing: 0.06em; color: var(--ink-faint);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .recents .label { text-transform: uppercase; letter-spacing: 0.16em; }
+  .chip {
+    color: var(--ink-dim); border: 1px solid var(--hair); border-radius: 7px;
+    padding: 5px 10px; cursor: pointer; transition: color 0.2s, border-color 0.2s;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--hair-2); }
+  .chip .sep { color: var(--ink-faint); }
+
+  /* ---------- course panel (the product, made tangible) ---------- */
+  .course {
+    background: linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012));
+    border: 1px solid var(--hair); border-radius: 18px; padding: 22px;
+    box-shadow: 0 40px 90px -50px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
+  }
+  .course .chead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .course .ctitle { font-size: 15px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; }
+  .course .cmeta {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .progress { height: 3px; border-radius: 3px; background: var(--hair); margin: 16px 0 20px; overflow: hidden; }
+  .progress > i { display: block; height: 100%; width: 50%; border-radius: 3px; background: var(--spectrum);
+    box-shadow: 0 0 12px rgba(124,58,237,0.6); animation: fill 1.4s var(--ease) 0.5s both; }
+  @keyframes fill { from { width: 0; } to { width: 50%; } }
+
+  .lesson { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--hair); }
+  .lesson:first-of-type { border-top: 0; }
+  .lesson .ic {
+    flex: none; width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center;
+    border: 1px solid var(--hair); color: var(--ink-faint);
+  }
+  .lesson .ic svg { width: 11px; height: 11px; }
+  .lesson .ic.done { background: var(--spectrum); border-color: transparent; color: #08080a; }
+  .lesson .ic.active { border-color: var(--vio); color: var(--cyan); box-shadow: 0 0 0 3px rgba(124,58,237,0.16); }
+  .lesson .txt { font-size: 13.5px; color: var(--ink-dim); }
+  .lesson.is-active .txt { color: var(--ink); }
+  .lesson.is-locked .txt { color: var(--ink-faint); }
+  .lesson .tag {
+    margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 9.5px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  .lesson.is-active .tag { color: var(--cyan); }
+
+  .check {
+    margin-top: 18px; padding: 16px; border-radius: 13px;
+    border: 1px solid var(--hair); background: rgba(255,255,255,0.018);
+  }
+  .check .q {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.04em;
+    color: var(--ink-faint); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .check .qtext { font-size: 14px; color: var(--ink); line-height: 1.45; margin-bottom: 14px; font-weight: 400; }
+  .check .qtext code {
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--cyan);
+    background: rgba(34,211,238,0.08); padding: 1px 5px; border-radius: 4px;
+  }
+  .opts { display: grid; gap: 8px; }
+  .opt {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-dim);
+    border: 1px solid var(--hair); border-radius: 9px; padding: 9px 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease);
+  }
+  .opt .key { color: var(--ink-faint); }
+  .opt:hover { color: var(--ink); border-color: var(--hair-2); background: var(--surface); }
+  .opt.correct {
+    color: var(--ink); border-color: transparent;
+    background: linear-gradient(rgba(124,58,237,0.12), rgba(34,211,238,0.06)) padding-box,
+                var(--spectrum) border-box;
+    border: 1px solid transparent;
+  }
+  .opt.correct .key { color: var(--cyan); }
+
+  .oracle {
+    margin-top: 16px; display: flex; align-items: center; gap: 9px;
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.06em;
+    color: var(--ink-faint);
+  }
+  .oracle b { color: var(--ink-dim); font-weight: 500; }
+
+  /* ---------- orchestrated entrance ---------- */
+  .reveal { opacity: 0; transform: translateY(16px); animation: rise 0.95s var(--ease) forwards; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+  .d1 { animation-delay: 0.06s; } .d2 { animation-delay: 0.16s; } .d3 { animation-delay: 0.26s; }
+  .d4 { animation-delay: 0.36s; } .d5 { animation-delay: 0.46s; } .d6 { animation-delay: 0.58s; }
+  .d7 { animation-delay: 0.7s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .bloom, .grain, .dot, h1 .spectrum, .progress > i { animation: none; opacity: 1; transform: none; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="bloom"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+
+  <div class="app">
+    <!-- activity rail -->
+    <nav class="rail" aria-label="activity">
+      <div class="mark" title="intuition">
+        <!-- mortarboard mark -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="#08080a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+      </div>
+      <button title="explorer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6l2 2h8v12a2 2 0 0 1-2 2H4Z"/></svg></button>
+      <button title="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+      <button class="active" title="course"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg></button>
+      <button title="terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 4 4-4 4"/><path d="M13 16h6"/></svg></button>
+      <div class="spacer"></div>
+      <button title="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 7 2.6h.1A1.6 1.6 0 0 0 9 1.1V1a2 2 0 1 1 4 0v.1A1.6 1.6 0 0 0 15 2.6a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1A1.6 1.6 0 0 0 22.9 11H23a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg></button>
+    </nav>
+
+    <!-- canvas -->
+    <main class="canvas">
+      <header class="topbar">
+        <span class="brand reveal d1"><b>intuition</b> &nbsp;·&nbsp; the ide that teaches</span>
+        <span class="status reveal d1"><span class="dot"></span> oracle · course in sync</span>
+      </header>
+
+      <div class="main">
+        <!-- hero -->
+        <section class="hero">
+          <div class="eyebrow reveal d2"><span class="line"></span> learn at the same pace your agents do</div>
+          <h1 class="reveal d3">your codebase,<br/>as a <span class="spectrum">course.</span></h1>
+          <p class="lede reveal d4">paste a repo and intuition reads it, builds a knowledge graph, and writes a <b>curriculum grounded in your real code</b> — then keeps it in sync as your agents keep changing it.</p>
+
+          <div class="actions reveal d5">
+            <button class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6l2 2h8v12a2 2 0 0 1-2 2H4Z"/></svg> open a project <span class="kbd">⌘O</span></button>
+            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> clone a repository</button>
+            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg> continue course →</button>
+          </div>
+
+          <div class="recents reveal d6">
+            <span class="label">recent</span>
+            <span class="chip">acme-billing <span class="sep">/</span> main</span>
+            <span class="chip">payments-svc <span class="sep">/</span> feat/dunning</span>
+            <span class="chip">web-dashboard <span class="sep">/</span> main</span>
+          </div>
+        </section>
+
+        <!-- course panel -->
+        <aside class="course reveal d7" aria-label="course preview">
+          <div class="chead">
+            <span class="ctitle">billing domain</span>
+            <span class="cmeta">module 2 / 4</span>
+          </div>
+          <div class="cmeta" style="color:var(--ink-faint)">2 of 4 lessons complete</div>
+          <div class="progress"><i></i></div>
+
+          <div class="lesson"><span class="ic done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 6"/></svg></span><span class="txt">invoices &amp; line items</span><span class="tag">done</span></div>
+          <div class="lesson is-active"><span class="ic active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M8 5v14l11-7z"/></svg></span><span class="txt">the billing state machine</span><span class="tag">now</span></div>
+          <div class="lesson"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M4 12l4-4M4 12l4 4"/></svg></span><span class="txt">webhook reconciliation</span><span class="tag">next</span></div>
+          <div class="lesson is-locked"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span class="txt">the dunning flow</span><span class="tag">locked</span></div>
+
+          <div class="check">
+            <div class="q">check your understanding</div>
+            <div class="qtext">which transition moves an invoice from <code>open</code> to <code>paid</code>?</div>
+            <div class="opts">
+              <div class="opt"><span class="key">a</span> webhook.received</div>
+              <div class="opt correct"><span class="key">b</span> payment.captured</div>
+              <div class="opt"><span class="key">c</span> invoice.voided</div>
+            </div>
+          </div>
+
+          <div class="oracle"><span class="dot"></span> <b>staleness oracle</b> · re-taught 3 lessons after your last commit</div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

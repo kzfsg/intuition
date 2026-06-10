@@ -16,7 +16,7 @@ import { Registry } from '../../../platform/registry/common/platform.js';
  * upstream code. Every value below is a default, not a lock: users can
  * override any of them in their settings.
  *
- * Layout target: Cursor-faithful (references/Cursor Layout.png) — activity
+ * Layout target: Cursor-faithful (references/cursor-layout.png) — activity
  * icons in a horizontal row atop the sidebar, plain window title, clean empty
  * editor on startup, chat in the right sidebar (already the upstream
  * default), thin status bar kept, terminal hidden until opened.
