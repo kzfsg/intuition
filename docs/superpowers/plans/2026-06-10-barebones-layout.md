@@ -300,3 +300,11 @@ Run: `grep -ciE "error|failed" "$TEMP/intuition-layout-check.log"` and compare c
 git push
 ```
 Expected: both commits on `origin/rebrand-intuition`.
+
+---
+
+## Follow-ups (from code-quality review, 2026-06-10)
+
+1. **Dev-from-source still loads the four excluded extensions** when stale `extensions/*/out/` exists from earlier builds (the dev extension scanner reads `<appRoot>/extensions` directly; `excludedExtensions` gates packaging only). On a fresh clone they instead fail activation quietly (grunt/gulp/jake) or on opening a .php file (php-language-features). Options: delete the four directories outright at the next upstream sync (pure deletions merge trivially), or accept and document. Packaged builds are correct either way.
+2. Core task-system still references grunt/gulp/jake in task *templates*/telemetry tags (`taskTemplates.ts` etc.) — independent of the extensions, nothing breaks; a later "barebones" sweep may want the templates gone too.
+3. Test note: `intuitionDefaults.test.ts` uses `assert.strictEqual`, correct while all override values stay primitive; switch to `deepStrictEqual` if an object-valued default is ever added.
