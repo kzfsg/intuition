@@ -10,6 +10,8 @@ import '../editor/editor.all.js';
 import './api/browser/extensionHost.contribution.js';
 import './browser/workbench.contribution.js';
 import './browser/workbench.zenMode.contribution.js';
+// Intuition default-settings overlay (must load before layout reads settings)
+import './common/intuition/intuitionDefaults.contribution.js';
 
 // Agent-sessions color tokens — side-effect import so they register in the
 // global color registry and appear in the color-theme JSON schema.

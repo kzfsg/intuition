@@ -444,7 +444,7 @@ export class AgentsHandoffInputTipContribution extends Disposable implements IWo
 		const description = useEmptyWorkspaceCopy
 			? localize('chat.agentsHandoff.tip.emptyWorkspace.description', "Open the Agents Window to start a Copilot CLI session.")
 			: mode === AgentsHandoffTipMode.Custom
-				? localize('chat.agentsHandoff.tip.description.copilot', "Free with your Copilot plan — get a dedicated, multi-pane view alongside your workspace.")
+				? localize('chat.agentsHandoff.tip.description.copilot', "Free with your Intuition plan — get a dedicated, multi-pane view alongside your workspace.")
 				: localize('chat.agentsHandoff.tip.description', "Get a dedicated, multi-pane view alongside your workspace.");
 
 		this._notificationService.setNotification({

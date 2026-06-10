@@ -111,10 +111,19 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 	}
 
 	// Use our bundled node-gyp version
-	env['npm_config_node_gyp'] =
-		process.platform === 'win32'
-			? path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')
-			: path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp');
+	const bundledNodeGyp = process.platform === 'win32'
+		? path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')
+		: path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp');
+	// npm invokes node-gyp through a shell without quoting, so a path containing spaces
+	// (e.g. a profile like "C:\Users\First Last\...") fails with
+	// "'C:\Users\First' is not recognized". Only force the bundled binary when its path
+	// has no spaces; otherwise fall back to npm's default node-gyp (same pinned version),
+	// which handles spaced paths correctly.
+	if (!/\s/.test(bundledNodeGyp)) {
+		env['npm_config_node_gyp'] = bundledNodeGyp;
+	} else {
+		delete env['npm_config_node_gyp'];
+	}
 
 	// Force node-gyp to use process.config on macOS
 	// which defines clang variable as expected. Otherwise we

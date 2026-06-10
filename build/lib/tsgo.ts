@@ -24,7 +24,10 @@ export function spawnTsgo(projectPath: string, config: { taskName: string; noEmi
 		}
 	}
 
-	const args = ['tsgo', '--project', projectPath, '--pretty', 'false', '--incremental'];
+	// NOTE: do not pass `--pretty`: tsgo (typescript-go) parses `--pretty false` as a
+	// positional source file (TS5042 "project cannot be mixed with source files") and
+	// rejects `--pretty=false` (TS5023 unknown option). Output is ansi-stripped below.
+	const args = ['tsgo', '--project', projectPath, '--incremental'];
 	if (config.noEmit) {
 		args.push('--noEmit');
 	} else {

@@ -139,8 +139,8 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	}
 
 	private getEntryProps(): IStatusbarEntry {
-		let text = '$(copilot)';
-		let ariaLabel = localize('chatStatusAria', "Copilot status");
+		let text = '$(mortar-board)';
+		let ariaLabel = localize('chatStatusAria', "Intuition status");
 		let kind: StatusbarEntryKind | undefined;
 
 		if (isNewUser(this.chatEntitlementService)) {
@@ -164,7 +164,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 			// Disabled
 			if (this.chatEntitlementService.sentiment.disabled || this.chatEntitlementService.sentiment.untrusted) {
 				text = '$(copilot-unavailable)';
-				ariaLabel = localize('copilotDisabledStatus', "Copilot disabled");
+				ariaLabel = localize('copilotDisabledStatus', "Intuition disabled");
 			}
 
 			// Sessions in progress
@@ -221,7 +221,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		}
 
 		const baseResult = {
-			name: localize('chatStatus', "Copilot Status"),
+			name: localize('chatStatus', "Intuition Status"),
 			text,
 			ariaLabel,
 			command: ShowTooltipCommand,
@@ -238,9 +238,9 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		const showSignInLabel = !this.isSignInTitleBarAffordanceVisible();
 		const signInLabel = localize('signIn', "Sign In");
 		return {
-			name: localize('chatStatus', "Copilot Status"),
-			text: showSignInLabel ? `$(copilot) ${signInLabel}` : '$(copilot)',
-			ariaLabel: showSignInLabel ? signInLabel : localize('chatStatusAria', "Copilot status"),
+			name: localize('chatStatus', "Intuition Status"),
+			text: showSignInLabel ? `$(mortar-board) ${signInLabel}` : '$(mortar-board)',
+			ariaLabel: showSignInLabel ? signInLabel : localize('chatStatusAria', "Intuition status"),
 			command: CHAT_SETUP_ACTION_ID,
 			showInAllWindows: true,
 			kind: undefined,

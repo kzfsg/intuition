@@ -80,5 +80,8 @@
       "lru-cache": "11.2.1"
     },
     "yauzl": "^3.3.1"
+  },
+  "dependencies": {
+    "intuition-dev": "file:.."
   }
 }
