@@ -51,6 +51,14 @@ An eager `IWorkbenchContribution` registered at `WorkbenchPhase.BlockRestore`
 - Unpinned containers stay reachable through the composite bar's overflow
   dropdown ("⋯") at the end of the row — the Cursor chevron. 4 icons + the
   dropdown = the five centered items.
+- **Implementation deviation:** upstream's overflow dropdown only lists
+  *pinned* items that don't fit the width; unpinned containers were reachable
+  only via right-click. To deliver the dropdown, an opt-in
+  `showHiddenItemsInOverflow` flag was added to `compositeBar.ts` /
+  `paneCompositeBar.ts` and enabled only by the sidebar's top bar in
+  `sidebarPart.ts` (the classic vertical activity bar keeps stock behavior).
+  Three files, ~10 lines, each marked with an `Intuition:` comment for
+  upstream-sync time.
 - Limitation (accepted): containers added by future upstream syncs auto-pin
   until a user unpins them or the seed version is bumped (`v2` marker).
 
