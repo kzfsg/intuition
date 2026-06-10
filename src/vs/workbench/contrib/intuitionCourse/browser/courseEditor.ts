@@ -30,6 +30,13 @@ import { CourseEditorInput, ICourseEditorOptions } from './courseEditorInput.js'
 
 const $ = dom.$;
 
+const LESSON_STATE_ICONS: Record<LessonState, ThemeIcon> = {
+	[LessonState.Done]: Codicon.check,
+	[LessonState.Active]: Codicon.play,
+	[LessonState.Next]: Codicon.arrowRight,
+	[LessonState.Locked]: Codicon.lock,
+};
+
 /**
  * The Course page: a full editor-area experience for working through the
  * course, with a lesson rail on the left and the lesson body plus its quiz on
@@ -48,6 +55,7 @@ export class CourseEditor extends EditorPane {
 	private selectedLessonId: string | undefined;
 	private selectedLevel: CourseLevel = CourseLevel.Codebase;
 	private fileCount: number | undefined;
+	private viewMode: 'home' | 'lesson' = 'home';
 
 	private readonly renderDisposables = this._register(new DisposableStore());
 
@@ -85,6 +93,9 @@ export class CourseEditor extends EditorPane {
 		}
 
 		this.selectedLessonId = options?.selectedLessonId ?? input.selectedLessonId;
+		if (this.selectedLessonId) {
+			this.viewMode = 'lesson';
+		}
 		this.render();
 	}
 
@@ -92,6 +103,7 @@ export class CourseEditor extends EditorPane {
 		super.setOptions(options);
 		if (options?.selectedLessonId) {
 			this.selectedLessonId = options.selectedLessonId;
+			this.viewMode = 'lesson';
 			this.render();
 		}
 	}
@@ -139,6 +151,7 @@ export class CourseEditor extends EditorPane {
 		const state = this.courseService.getGenerationState();
 		if (state !== CourseGenerationState.Ready || !this.course) {
 			this.container?.classList.add('lifecycle');
+			this.container?.classList.remove('home');
 			switch (state) {
 				case CourseGenerationState.Indexing:
 					this.renderIndexing(this.contentElement);
@@ -152,6 +165,13 @@ export class CourseEditor extends EditorPane {
 			}
 		}
 		this.container?.classList.remove('lifecycle');
+
+		if (this.viewMode === 'home') {
+			this.container?.classList.add('home');
+			this.renderHome(this.contentElement, this.course);
+			return;
+		}
+		this.container?.classList.remove('home');
 
 		const lesson = this.resolveSelection();
 		this.selectedLessonId = lesson?.id;
@@ -181,15 +201,19 @@ export class CourseEditor extends EditorPane {
 		this.updateScopeLine(scope);
 
 		const levels = dom.append(screen, $('.course-start-levels'));
-		this.renderLevelCard(levels, CourseLevel.Language, localize('courseStart.l1', "Language"), localize('courseStart.l1Desc', "New to the language itself"), false);
-		this.renderLevelCard(levels, CourseLevel.Framework, localize('courseStart.l2', "Framework"), localize('courseStart.l2Desc', "Knows the language, not the framework"), false);
+		this.renderLevelCard(levels, CourseLevel.Language, localize('courseStart.l1', "Language"), localize('courseStart.l1Desc', "New to the language itself"), true);
+		this.renderLevelCard(levels, CourseLevel.Framework, localize('courseStart.l2', "Framework"), localize('courseStart.l2Desc', "Knows the language, not the framework"), true);
 		this.renderLevelCard(levels, CourseLevel.Codebase, localize('courseStart.l3', "Codebase"), localize('courseStart.l3Desc', "Knows both — learning this repo's systems"), true);
+
+		dom.append(screen, $('.course-start-copy', undefined,
+			localize('courseStart.allLevels', "All levels are generated — you can switch anytime.")));
 
 		const start = dom.append(screen, $<HTMLButtonElement>('button.course-start-button', undefined, localize('courseStart.start', "Start indexing")));
 		if (!folder) {
 			start.disabled = true;
 		} else {
 			this.renderDisposables.add(dom.addDisposableListener(start, dom.EventType.CLICK, () => {
+				this.courseService.setActiveLevel(this.selectedLevel);
 				this.courseService.startGeneration({ level: this.selectedLevel });
 			}));
 		}
@@ -259,9 +283,86 @@ export class CourseEditor extends EditorPane {
 		}));
 	}
 
+	// --- course home
+
+	private renderHome(parent: HTMLElement, course: ICourse): void {
+		const home = dom.append(parent, $('.course-home'));
+
+		const toggle = dom.append(home, $('.course-home-levels', { role: 'tablist' }));
+		const levels: [CourseLevel, string][] = [
+			[CourseLevel.Language, localize('courseHome.language', "Language")],
+			[CourseLevel.Framework, localize('courseHome.framework', "Framework")],
+			[CourseLevel.Codebase, localize('courseHome.codebase', "Codebase")],
+		];
+		for (const [level, label] of levels) {
+			const pill = dom.append(toggle, $<HTMLButtonElement>('button.course-home-level', { role: 'tab' }, label));
+			pill.classList.toggle('active', course.level === level);
+			this.renderDisposables.add(dom.addDisposableListener(pill, dom.EventType.CLICK, () => {
+				this.courseService.setActiveLevel(level); // change event re-renders
+			}));
+		}
+
+		dom.append(home, $('.course-home-title', undefined, course.title));
+		if (course.description) {
+			dom.append(home, $('.course-home-desc', undefined, course.description));
+		}
+
+		const progress = this.courseService.getProgress();
+		dom.append(home, $('.course-page-meta', undefined,
+			localize('coursePage.progress', "{0} of {1} lessons complete", progress.done, progress.total)));
+		const bar = dom.append(home, $('.course-page-progress'));
+		const fill = dom.append(bar, $('.course-page-progress-fill'));
+		fill.style.width = progress.total ? `${Math.round(100 * progress.done / progress.total)}%` : '0';
+
+		course.modules.forEach((module, i) => {
+			const card = dom.append(home, $('.course-home-chapter'));
+			dom.append(card, $('.course-home-chapter-title', undefined,
+				localize('courseHome.chapter', "Chapter {0} · {1}", i + 1, module.title)));
+			const list = dom.append(card, $('.course-page-lessons', { role: 'list' }));
+			for (const lesson of module.lessons) {
+				this.renderHomeLesson(list, lesson);
+			}
+		});
+
+		const footer = dom.append(home, $('.course-page-nav-footer'));
+		if (this.catalogCommit) {
+			const stamp = dom.append(footer, $('span.course-page-indexed', undefined,
+				localize('coursePage.indexedAt', "indexed at {0}", this.catalogCommit)));
+			this.decorateStaleness(stamp, this.catalogCommit);
+		}
+		const reindex = dom.append(footer, $('button.course-page-reindex', undefined, localize('coursePage.reindex', "Re-index")));
+		this.renderDisposables.add(dom.addDisposableListener(reindex, dom.EventType.CLICK, () => this.courseService.reindex()));
+	}
+
+	private renderHomeLesson(parent: HTMLElement, lesson: ICourseLesson): void {
+		const state = this.courseService.getLessonState(lesson.id);
+		const row = dom.append(parent, $<HTMLButtonElement>(`button.course-page-lesson.${state}`, { role: 'listitem' }));
+		dom.append(row, $(`.course-page-lesson-icon${ThemeIcon.asCSSSelector(LESSON_STATE_ICONS[state])}`));
+		dom.append(row, $('.course-page-lesson-title', undefined, lesson.title));
+		if (state === LessonState.Active) {
+			dom.append(row, $('.course-home-continue', undefined, localize('courseHome.continue', "Continue")));
+		}
+		if (state === LessonState.Locked) {
+			row.disabled = true;
+		} else {
+			this.renderDisposables.add(dom.addDisposableListener(row, dom.EventType.CLICK, () => {
+				this.selectedLessonId = lesson.id;
+				this.viewMode = 'lesson';
+				this.render();
+			}));
+		}
+	}
+
 	// --- left rail
 
 	private renderNav(parent: HTMLElement, course: ICourse): void {
+		const back = dom.append(parent, $('button.course-page-back', undefined,
+			localize('coursePage.backHome', "← Course home")));
+		this.renderDisposables.add(dom.addDisposableListener(back, dom.EventType.CLICK, () => {
+			this.viewMode = 'home';
+			this.render();
+		}));
+
 		const header = dom.append(parent, $('.course-page-nav-header'));
 		dom.append(header, $('.course-page-title', undefined, course.title));
 
@@ -281,16 +382,6 @@ export class CourseEditor extends EditorPane {
 			}
 		}
 
-		const footer = dom.append(parent, $('.course-page-nav-footer'));
-		if (this.catalogCommit) {
-			const stamp = dom.append(footer, $('span.course-page-indexed', undefined,
-				localize('coursePage.indexedAt', "indexed at {0}", this.catalogCommit)));
-			this.decorateStaleness(stamp, this.catalogCommit);
-		}
-		const reindex = dom.append(footer, $('button.course-page-reindex', undefined, localize('coursePage.reindex', "Re-index")));
-		this.renderDisposables.add(dom.addDisposableListener(reindex, dom.EventType.CLICK, () => {
-			this.courseService.reindex();
-		}));
 	}
 
 	private async decorateStaleness(stamp: HTMLElement, indexedCommit: string): Promise<void> {
@@ -311,13 +402,7 @@ export class CourseEditor extends EditorPane {
 		}));
 		row.classList.toggle('selected', lesson.id === this.selectedLessonId);
 
-		const icons: Record<LessonState, ThemeIcon> = {
-			[LessonState.Done]: Codicon.check,
-			[LessonState.Active]: Codicon.play,
-			[LessonState.Next]: Codicon.arrowRight,
-			[LessonState.Locked]: Codicon.lock,
-		};
-		dom.append(row, $(`.course-page-lesson-icon${ThemeIcon.asCSSSelector(icons[state])}`));
+		dom.append(row, $(`.course-page-lesson-icon${ThemeIcon.asCSSSelector(LESSON_STATE_ICONS[state])}`));
 		dom.append(row, $('.course-page-lesson-title', undefined, lesson.title));
 
 		if (state === LessonState.Locked) {

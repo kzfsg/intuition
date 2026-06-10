@@ -463,3 +463,67 @@
 	color: var(--vscode-textLink-foreground);
 	cursor: pointer;
 }
+
+/* --- course home --- */
+
+.intuition-course-editor.home .course-page-nav { display: none; }
+
+.intuition-course-editor.home .course-page-content { display: block; }
+
+.course-home {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 32px 24px 48px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.course-home-levels { display: flex; gap: 6px; margin-bottom: 12px; }
+
+.course-home-level {
+	padding: 4px 14px;
+	border: 1px solid var(--vscode-widget-border, transparent);
+	border-radius: 999px;
+	background: var(--vscode-editorWidget-background);
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+}
+
+.course-home-level.active {
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	border-color: transparent;
+}
+
+.course-home-title { font-size: 26px; font-weight: 600; }
+.course-home-desc { color: var(--vscode-descriptionForeground); }
+
+.course-home-chapter {
+	margin-top: 12px;
+	padding: 14px 16px;
+	border: 1px solid var(--vscode-widget-border, transparent);
+	border-radius: 8px;
+	background: var(--vscode-editorWidget-background);
+}
+
+.course-home-chapter-title { font-weight: 600; margin-bottom: 8px; }
+
+.course-home-continue {
+	margin-left: auto;
+	padding: 1px 10px;
+	border-radius: 999px;
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	font-size: 11px;
+}
+
+.course-page-back {
+	align-self: flex-start;
+	margin-bottom: 12px;
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+}
