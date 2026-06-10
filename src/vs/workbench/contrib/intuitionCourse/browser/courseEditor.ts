@@ -11,15 +11,19 @@ import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize } from '../../../../nls.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IMarkdownRendererService } from '../../../../platform/markdown/browser/markdownRenderer.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
 import { IEditorOpenContext } from '../../../common/editor.js';
 import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';
-import { COURSE_EDITOR_ID, ICourse, ICourseLesson, LessonState } from '../common/course.js';
-import { ICourseService } from '../common/courseService.js';
+import { QueryBuilder } from '../../../services/search/common/queryBuilder.js';
+import { ISearchService } from '../../../services/search/common/search.js';
+import { COURSE_EDITOR_ID, CourseLevel, ICourse, ICourseLesson, LessonState } from '../common/course.js';
+import { CourseGenerationState, ICourseService } from '../common/courseService.js';
 import { CourseEditorInput, ICourseEditorOptions } from './courseEditorInput.js';
 
 const $ = dom.$;
@@ -39,6 +43,8 @@ export class CourseEditor extends EditorPane {
 
 	private course: ICourse | undefined;
 	private selectedLessonId: string | undefined;
+	private selectedLevel: CourseLevel = CourseLevel.Codebase;
+	private fileCount: number | undefined;
 
 	private readonly renderDisposables = this._register(new DisposableStore());
 
@@ -49,6 +55,9 @@ export class CourseEditor extends EditorPane {
 		@IStorageService storageService: IStorageService,
 		@ICourseService private readonly courseService: ICourseService,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
+		@IWorkspaceContextService private readonly contextService: IWorkspaceContextService,
+		@ISearchService private readonly searchService: ISearchService,
+		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) {
 		super(CourseEditor.ID, group, telemetryService, themeService, storageService);
 
@@ -121,11 +130,22 @@ export class CourseEditor extends EditorPane {
 		dom.clearNode(this.navElement);
 		dom.clearNode(this.contentElement);
 
-		if (!this.course) {
-			dom.append(this.contentElement, $('.course-page-empty', undefined,
-				localize('coursePage.empty', "No course yet. Open a project to turn it into one.")));
-			return;
+		const state = this.courseService.getGenerationState();
+		if (state !== CourseGenerationState.Ready || !this.course) {
+			this.container?.classList.add('lifecycle');
+			switch (state) {
+				case CourseGenerationState.Indexing:
+					this.renderIndexing(this.contentElement);
+					return;
+				case CourseGenerationState.Error:
+					this.renderError(this.contentElement);
+					return;
+				default:
+					this.renderStartScreen(this.contentElement);
+					return;
+			}
 		}
+		this.container?.classList.remove('lifecycle');
 
 		const lesson = this.resolveSelection();
 		this.selectedLessonId = lesson?.id;
@@ -137,6 +157,100 @@ export class CourseEditor extends EditorPane {
 		if (lesson) {
 			this.renderLesson(this.contentElement, lesson);
 		}
+	}
+
+	// --- lifecycle screens
+
+	private renderStartScreen(parent: HTMLElement): void {
+		const screen = dom.append(parent, $('.course-start'));
+		dom.append(screen, $(`.course-start-icon${ThemeIcon.asCSSSelector(Codicon.mortarBoard)}`));
+		dom.append(screen, $('.course-start-title', undefined, localize('courseStart.title', "Learn this codebase")));
+
+		const folder = this.contextService.getWorkspace().folders[0];
+		dom.append(screen, $('.course-start-copy', undefined, folder
+			? localize('courseStart.copy', "Intuition will scan {0} and use your configured model to build a course about this codebase.", folder.name)
+			: localize('courseStart.noFolder', "Open a folder to turn it into a course.")));
+
+		const scope = dom.append(screen, $('.course-start-scope'));
+		this.updateScopeLine(scope);
+
+		const levels = dom.append(screen, $('.course-start-levels'));
+		this.renderLevelCard(levels, CourseLevel.Language, localize('courseStart.l1', "Language"), localize('courseStart.l1Desc', "New to the language itself"), false);
+		this.renderLevelCard(levels, CourseLevel.Framework, localize('courseStart.l2', "Framework"), localize('courseStart.l2Desc', "Knows the language, not the framework"), false);
+		this.renderLevelCard(levels, CourseLevel.Codebase, localize('courseStart.l3', "Codebase"), localize('courseStart.l3Desc', "Knows both — learning this repo's systems"), true);
+
+		const start = dom.append(screen, $<HTMLButtonElement>('button.course-start-button', undefined, localize('courseStart.start', "Start indexing")));
+		if (!folder) {
+			start.disabled = true;
+		} else {
+			this.renderDisposables.add(dom.addDisposableListener(start, dom.EventType.CLICK, () => {
+				this.courseService.startGeneration({ level: this.selectedLevel });
+			}));
+		}
+	}
+
+	private renderLevelCard(parent: HTMLElement, level: CourseLevel, title: string, description: string, enabled: boolean): void {
+		const card = dom.append(parent, $<HTMLButtonElement>('button.course-start-level'));
+		card.classList.toggle('selected', enabled && this.selectedLevel === level);
+		dom.append(card, $('.course-start-level-title', undefined, title));
+		dom.append(card, $('.course-start-level-desc', undefined, description));
+		if (!enabled) {
+			card.disabled = true;
+			dom.append(card, $('.course-start-level-soon', undefined, localize('courseStart.soon', "coming soon")));
+		} else {
+			this.renderDisposables.add(dom.addDisposableListener(card, dom.EventType.CLICK, () => {
+				this.selectedLevel = level;
+				this.render();
+			}));
+		}
+	}
+
+	private async updateScopeLine(scope: HTMLElement): Promise<void> {
+		const folders = this.contextService.getWorkspace().folders;
+		if (!folders.length) {
+			return;
+		}
+		if (this.fileCount === undefined) {
+			try {
+				const queryBuilder = this.instantiationService.createInstance(QueryBuilder);
+				const query = queryBuilder.file(folders, { maxResults: 10000 });
+				const result = await this.searchService.fileSearch(query, CancellationToken.None);
+				this.fileCount = result.results.length;
+			} catch {
+				return; // no scope line is fine
+			}
+		}
+		if (scope.isConnected) {
+			scope.textContent = localize('courseStart.scope', "~{0} source files", this.fileCount);
+		}
+	}
+
+	private renderIndexing(parent: HTMLElement): void {
+		const screen = dom.append(parent, $('.course-indexing'));
+		dom.append(screen, $('.course-start-title', undefined, localize('courseIndexing.title', "Building your course…")));
+
+		const progress = this.courseService.getGenerationProgress();
+		const stages = dom.append(screen, $('.course-indexing-stages'));
+		dom.append(stages, $('.course-indexing-stage.current', undefined, progress?.stage ?? localize('courseIndexing.preparing', "Preparing…")));
+
+		const bar = dom.append(screen, $('.course-page-progress'));
+		const fill = dom.append(bar, $('.course-page-progress-fill'));
+		fill.style.width = `${progress?.percent ?? 5}%`;
+
+		const cancel = dom.append(screen, $('button.course-indexing-cancel', undefined, localize('courseIndexing.cancel', "Cancel")));
+		this.renderDisposables.add(dom.addDisposableListener(cancel, dom.EventType.CLICK, () => {
+			this.courseService.cancelGeneration();
+		}));
+	}
+
+	private renderError(parent: HTMLElement): void {
+		const screen = dom.append(parent, $('.course-error'));
+		dom.append(screen, $('.course-start-title', undefined, localize('courseError.title', "Course generation failed")));
+		dom.append(screen, $('.course-start-copy', undefined, this.courseService.getGenerationError() ?? localize('courseError.unknown', "Unknown error.")));
+		const retry = dom.append(screen, $('button.course-start-button', undefined, localize('courseError.retry', "Retry")));
+		this.renderDisposables.add(dom.addDisposableListener(retry, dom.EventType.CLICK, () => {
+			this.courseService.startGeneration({ level: this.selectedLevel });
+		}));
 	}
 
 	// --- left rail

@@ -305,3 +305,115 @@
 .intuition-course-editor .course-page-lesson-body > .course-page-continue {
 	margin-top: 32px;
 }
+
+/* --- generation lifecycle screens --- */
+
+.intuition-course-editor.lifecycle .course-page-nav {
+	display: none;
+}
+
+.intuition-course-editor.lifecycle .course-page-content {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.course-start,
+.course-indexing,
+.course-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	max-width: 520px;
+	text-align: center;
+}
+
+.course-start-icon {
+	font-size: 48px !important;
+	color: var(--vscode-textLink-foreground);
+}
+
+.course-start-title {
+	font-size: 24px;
+	font-weight: 600;
+}
+
+.course-start-copy,
+.course-start-scope {
+	color: var(--vscode-descriptionForeground);
+}
+
+.course-start-levels {
+	display: flex;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+.course-start-level {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 12px;
+	border: 1px solid var(--vscode-widget-border, transparent);
+	border-radius: 6px;
+	background: var(--vscode-editorWidget-background);
+	color: inherit;
+	cursor: pointer;
+	text-align: left;
+}
+
+.course-start-level.selected {
+	border-color: var(--vscode-focusBorder);
+	outline: 1px solid var(--vscode-focusBorder);
+}
+
+.course-start-level:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.course-start-level-title {
+	font-weight: 600;
+}
+
+.course-start-level-desc,
+.course-start-level-soon {
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.course-start-level-soon {
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.course-start-button,
+.course-indexing-cancel {
+	margin-top: 8px;
+	padding: 6px 16px;
+	border: none;
+	border-radius: 4px;
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	cursor: pointer;
+}
+
+.course-start-button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.course-indexing-cancel {
+	background: var(--vscode-button-secondaryBackground);
+	color: var(--vscode-button-secondaryForeground);
+}
+
+.course-indexing .course-page-progress {
+	width: 320px;
+}
+
+.course-indexing-stage.current {
+	font-weight: 600;
+}
