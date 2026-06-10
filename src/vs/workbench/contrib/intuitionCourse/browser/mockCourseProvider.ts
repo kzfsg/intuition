@@ -3,25 +3,90 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ICourse } from '../common/course.js';
-import { ICourseProvider } from '../common/courseService.js';
+import { disposableTimeout } from '../../../../base/common/async.js';
+import { Emitter } from '../../../../base/common/event.js';
+import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
+import { CourseLevel, ICourse } from '../common/course.js';
+import { CourseGenerationState, ICourseGenerationOptions, ICourseGenerationProgress, ICourseProvider } from '../common/courseService.js';
 
 /**
- * v1 placeholder provider: a hand-written course that teaches this very
- * codebase. It exists to drive the Course view with realistic data until the
- * BYOK generation pipeline replaces it; the lessons reference real files so
- * the tab is genuinely useful to Intuition contributors in the meantime.
+ * Simulated generation pipeline over a hand-written course that teaches this
+ * very codebase: plays staged "indexing" progress on timers, then serves the
+ * curriculum as an outline with lazily resolved lesson bodies. Stays after
+ * the BYOK pipeline (sub-project B) ships, as the dev/fallback provider that
+ * exercises every lifecycle state without a key.
  */
-export class MockCourseProvider implements ICourseProvider {
+export class MockCourseProvider extends Disposable implements ICourseProvider {
 
-	async provideCourse(): Promise<ICourse> {
-		return mockCourse;
+	private static readonly STAGES = ['Mapping folders…', 'Finding entry points…', 'Reading the dialect…', 'Tracing flows…'];
+	private static readonly STAGE_MILLIS = 1000;
+	private static readonly LESSON_MILLIS = 600;
+
+	private readonly _onDidChangeGenerationState = this._register(new Emitter<void>());
+	readonly onDidChangeGenerationState = this._onDidChangeGenerationState.event;
+
+	private state = CourseGenerationState.NotStarted;
+	private progress: ICourseGenerationProgress | undefined;
+	private level = CourseLevel.Codebase;
+	private readonly timers = this._register(new DisposableStore());
+
+	getGenerationState(): CourseGenerationState { return this.state; }
+	getGenerationProgress(): ICourseGenerationProgress | undefined { return this.progress; }
+	getGenerationError(): string | undefined { return undefined; }
+
+	startGeneration(options: ICourseGenerationOptions): void {
+		if (this.state === CourseGenerationState.Indexing) {
+			return;
+		}
+		this.level = options.level;
+		this.state = CourseGenerationState.Indexing;
+		this.playStage(0);
+	}
+
+	private playStage(index: number): void {
+		if (index >= MockCourseProvider.STAGES.length) {
+			this.progress = undefined;
+			this.state = CourseGenerationState.Ready;
+			this._onDidChangeGenerationState.fire();
+			return;
+		}
+		this.progress = { stage: MockCourseProvider.STAGES[index], percent: Math.round(100 * index / MockCourseProvider.STAGES.length) };
+		this._onDidChangeGenerationState.fire();
+		this.timers.add(disposableTimeout(() => this.playStage(index + 1), MockCourseProvider.STAGE_MILLIS));
+	}
+
+	cancelGeneration(): void { this.toNotStarted(); }
+	reset(): void { this.toNotStarted(); }
+
+	private toNotStarted(): void {
+		this.timers.clear();
+		this.state = CourseGenerationState.NotStarted;
+		this.progress = undefined;
+		this._onDidChangeGenerationState.fire();
+	}
+
+	async provideCourse(): Promise<ICourse | undefined> {
+		if (this.state !== CourseGenerationState.Ready) {
+			return undefined;
+		}
+		// outline only: bodies resolve through provideLessonContent
+		return {
+			...mockCourse,
+			level: this.level,
+			modules: mockCourse.modules.map(m => ({ ...m, lessons: m.lessons.map(({ content: _content, ...rest }) => rest) })),
+		};
+	}
+
+	provideLessonContent(lessonId: string): Promise<string> {
+		const content = mockCourse.modules.flatMap(m => m.lessons).find(l => l.id === lessonId)?.content;
+		return new Promise(resolve => this.timers.add(disposableTimeout(() => resolve(content ?? ''), MockCourseProvider.LESSON_MILLIS)));
 	}
 }
 
 const mockCourse: ICourse = {
 	id: 'intuition-workbench-101',
 	title: 'the intuition workbench',
+	level: CourseLevel.Codebase,
 	modules: [{
 		id: 'workbench-architecture',
 		title: 'workbench architecture',

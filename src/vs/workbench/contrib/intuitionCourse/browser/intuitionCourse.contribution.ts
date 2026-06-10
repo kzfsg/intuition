@@ -58,7 +58,7 @@ class CourseProviderContribution extends Disposable implements IWorkbenchContrib
 
 	constructor(@ICourseService courseService: ICourseService) {
 		super();
-		this._register(courseService.registerProvider(new MockCourseProvider()));
+		this._register(courseService.registerProvider(this._register(new MockCourseProvider())));
 	}
 }
 

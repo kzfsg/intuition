@@ -199,7 +199,7 @@ export class CourseEditor extends EditorPane {
 		dom.append(lessonEl, $(`.course-page-state-tag.${state}`, undefined, this.stateLabel(state)));
 
 		const markdown = dom.append(lessonEl, $('.course-page-markdown'));
-		const rendered = this.markdownRendererService.render(new MarkdownString(lesson.content));
+		const rendered = this.markdownRendererService.render(new MarkdownString(lesson.content ?? ''));
 		this.renderDisposables.add(rendered);
 		markdown.appendChild(rendered.element);
 

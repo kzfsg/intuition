@@ -20,6 +20,17 @@ export const COURSE_EDITOR_ID = 'workbench.editor.intuitionCourse';
 export const OPEN_COURSE_COMMAND_ID = 'intuition.course.open';
 export const OPEN_LESSON_COMMAND_ID = 'intuition.course.openLesson';
 export const RESET_PROGRESS_COMMAND_ID = 'intuition.course.resetProgress';
+export const REINDEX_COMMAND_ID = 'intuition.course.reindex';
+
+/**
+ * Which knowledge layer is the learner's frontier ("one novel layer at a
+ * time"): the course assumes everything below it and teaches at it.
+ */
+export const enum CourseLevel {
+	Language = 'language',
+	Framework = 'framework',
+	Codebase = 'codebase',
+}
 
 export interface ICourseQuiz {
 	readonly question: string;
@@ -30,8 +41,8 @@ export interface ICourseQuiz {
 export interface ICourseLesson {
 	readonly id: string;
 	readonly title: string;
-	/** Lesson body, markdown. */
-	readonly content: string;
+	/** Lesson body, markdown. Undefined in an outline: resolved lazily via the provider. */
+	readonly content?: string;
 	readonly quiz?: ICourseQuiz;
 }
 
@@ -44,6 +55,9 @@ export interface ICourseModule {
 export interface ICourse {
 	readonly id: string;
 	readonly title: string;
+	readonly level: CourseLevel;
+	/** Short commit hash the course was indexed at; undefined outside a git repo. */
+	readonly indexedCommit?: string;
 	readonly modules: readonly ICourseModule[];
 }
 
