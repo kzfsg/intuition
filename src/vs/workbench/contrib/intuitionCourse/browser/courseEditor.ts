@@ -360,6 +360,9 @@ export class CourseEditor extends EditorPane {
 			localize('coursePage.backHome', "← Course home")));
 		this.renderDisposables.add(dom.addDisposableListener(back, dom.EventType.CLICK, () => {
 			this.viewMode = 'home';
+			if (this.input instanceof CourseEditorInput) {
+				this.input.selectedLessonId = undefined; // restore lands on home, not the lesson
+			}
 			this.render();
 		}));
 
