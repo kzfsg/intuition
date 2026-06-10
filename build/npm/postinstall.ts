@@ -247,6 +247,17 @@ async function runWithConcurrency(tasks: (() => Promise<void>)[], concurrency: n
 }
 
 async function main() {
+	// `build/package.json` depends on the repo root as `file:..`, so the npm
+	// install we spawn in build/ can re-run this very script (npm runs lifecycle
+	// scripts of linked directory deps). Without this guard that recursion is
+	// unbounded whenever the state-hash check is bypassed (fresh machine,
+	// VSCODE_FORCE_INSTALL) — it fork-bombs the host.
+	if (process.env['VSCODE_POSTINSTALL_ACTIVE']) {
+		log('.', 'Re-entrant postinstall detected (spawned by a sub-install), skipping.');
+		return;
+	}
+	process.env['VSCODE_POSTINSTALL_ACTIVE'] = '1';
+
 	if (!process.env['VSCODE_FORCE_INSTALL'] && isUpToDate()) {
 		log('.', 'All dependencies up to date, skipping postinstall.');
 		child_process.execSync('git config pull.rebase merges');
