@@ -123,6 +123,10 @@
 			"project": "vscode-workbench"
 		},
 		{
+			"name": "vs/workbench/contrib/intuitionCourse",
+			"project": "vscode-workbench"
+		},
+		{
 			"name": "vs/workbench/contrib/languageStatus",
 			"project": "vscode-workbench"
 		},

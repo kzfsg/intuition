@@ -199,6 +199,9 @@ registerSingleton(IAllowedMcpServersService, AllowedMcpServersService, Instantia
 
 //#region --- workbench contributions
 
+// Intuition Course ("your codebase, as a course")
+import './contrib/intuitionCourse/browser/intuitionCourse.contribution.js';
+
 // Default Account
 import './services/accounts/browser/defaultAccount.js';
 
