@@ -62,6 +62,9 @@
 }
 
 /* The signature 1px iridescent line on the title bar's top edge (".nav-streak"). */
+/* position: relative is REQUIRED so the ::after streak below is contained to the
+ * title bar — without it the absolutely-positioned pseudo resolves against
+ * .monaco-workbench and the line escapes the title bar. */
 .monaco-workbench .part.titlebar { position: relative; }
 .monaco-workbench .part.titlebar::after {
 	content: '';
