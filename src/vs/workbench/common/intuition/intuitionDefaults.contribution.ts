@@ -39,6 +39,12 @@ export const intuitionDefaultOverrides = Object.freeze<Record<string, unknown>>(
 	// it remotely; pinning it here is deliberate.
 	'chat.growthNotification.enabled': false,
 	'update.showReleaseNotes': false,
+
+	// --- Brand: Intuition identity ---
+	'workbench.colorTheme': 'Intuition Dark',
+	'workbench.preferredDarkColorTheme': 'Intuition Dark',
+	'workbench.preferredLightColorTheme': 'Intuition Light',
+	'editor.fontFamily': '\'IBM Plex Mono\', Menlo, Monaco, \'Courier New\', monospace',
 });
 
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)

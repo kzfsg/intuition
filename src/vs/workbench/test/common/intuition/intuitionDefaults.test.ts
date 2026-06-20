@@ -39,4 +39,11 @@ suite('Intuition Default Overrides', () => {
 			assert.ok(properties[key], `Setting '${key}' no longer exists upstream — fix intuitionDefaults.contribution.ts`);
 		}
 	});
+
+	test('brand defaults (theme + editor font) are present', () => {
+		assert.strictEqual(intuitionDefaultOverrides['workbench.colorTheme'], 'Intuition Dark');
+		assert.strictEqual(intuitionDefaultOverrides['workbench.preferredDarkColorTheme'], 'Intuition Dark');
+		assert.strictEqual(intuitionDefaultOverrides['workbench.preferredLightColorTheme'], 'Intuition Light');
+		assert.ok(String(intuitionDefaultOverrides['editor.fontFamily']).includes('IBM Plex Mono'));
+	});
 });
