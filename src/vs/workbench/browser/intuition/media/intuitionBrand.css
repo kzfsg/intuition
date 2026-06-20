@@ -1,0 +1,84 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Bundled brand fonts. Values mirror src/.../common/intuition/intuitionTokens.ts. */
+@font-face {
+	font-family: 'Inter';
+	font-style: normal;
+	font-weight: 200 600;
+	font-display: swap;
+	src: url('./fonts/inter-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'IBM Plex Mono';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('./fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'IBM Plex Mono';
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url('./fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');
+}
+
+/* Brand tokens + the spectrum sweeps. Dark is the default; light overrides under .vs. */
+.monaco-workbench {
+	--intuition-iris: #ee45e0;
+	--intuition-violet: #9a6bff;
+	--intuition-cyan: #34e7ff;
+	--intuition-lime: #b6ff3d;
+	--intuition-spectrum: linear-gradient(100deg, var(--intuition-iris) 0%, var(--intuition-violet) 25%, var(--intuition-cyan) 50%, var(--intuition-violet) 75%, var(--intuition-iris) 100%);
+	--intuition-streak: linear-gradient(90deg, transparent 0%, var(--intuition-iris) 10%, var(--intuition-violet) 30%, var(--intuition-cyan) 50%, var(--intuition-violet) 70%, var(--intuition-iris) 90%, transparent 100%);
+}
+.monaco-workbench.vs {
+	--intuition-iris: #c81fd1;
+	--intuition-violet: #6d3cff;
+	--intuition-cyan: #0a93c2;
+	--intuition-lime: #6f9e00;
+}
+
+@keyframes intuition-shimmer {
+	from { background-position: 0% center; }
+	to { background-position: 200% center; }
+}
+
+/* Word gradient — marquee brand moments only (e.g. a welcome/full-learn headline). */
+.monaco-workbench .intuition-text-spectrum {
+	background-image: var(--intuition-spectrum);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: intuition-shimmer 7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.monaco-workbench .intuition-text-spectrum { animation: none; }
+}
+
+/* The signature 1px iridescent line on the title bar's top edge (".nav-streak"). */
+/* position: relative is REQUIRED so the ::after streak below is contained to the
+ * title bar — without it the absolutely-positioned pseudo resolves against
+ * .monaco-workbench and the line escapes the title bar. */
+.monaco-workbench .part.titlebar { position: relative; }
+.monaco-workbench .part.titlebar::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 1px;
+	pointer-events: none;
+	background-image: var(--intuition-streak);
+	background-size: 200% 100%;
+	opacity: 0.9;
+	animation: intuition-shimmer 7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+	.monaco-workbench .part.titlebar::after { animation: none; }
+}

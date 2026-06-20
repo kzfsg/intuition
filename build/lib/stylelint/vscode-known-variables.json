@@ -1078,7 +1078,13 @@
 		"--vscode-inline-chat-affordance-height",
 		"--collapse-from-width",
 		"--slide-from-x",
-		"--slide-from-y"
+		"--slide-from-y",
+		"--intuition-iris",
+		"--intuition-violet",
+		"--intuition-cyan",
+		"--intuition-lime",
+		"--intuition-spectrum",
+		"--intuition-streak"
 	],
 	"sizes": [
 		"--vscode-agents-fontSize-body1",

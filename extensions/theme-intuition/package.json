@@ -1,0 +1,27 @@
+{
+  "name": "theme-intuition",
+  "displayName": "Intuition Theme",
+  "description": "Intuition's signature dark and light themes.",
+  "version": "1.0.0",
+  "publisher": "intuition",
+  "license": "MIT",
+  "engines": { "vscode": "*" },
+  "categories": ["Themes"],
+  "contributes": {
+    "themes": [
+      {
+        "id": "Intuition Dark",
+        "label": "Intuition Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/intuition-dark-color-theme.json"
+      },
+      {
+        "id": "Intuition Light",
+        "label": "Intuition Light",
+        "uiTheme": "vs",
+        "path": "./themes/intuition-light-color-theme.json"
+      }
+    ]
+  },
+  "repository": { "type": "git", "url": "https://github.com/kzfsg/intuition.git" }
+}
