@@ -24,3 +24,16 @@
 .monaco-workbench .intuition-course-titlebar-item > .intuition-course-titlebar-icon {
 	font-size: 16px;
 }
+
+/* The active teaching mark carries the spectrum (mark & line only budget). */
+.monaco-workbench .intuition-course-titlebar-icon::before {
+	background-image: var(--intuition-spectrum);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: intuition-shimmer 7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+	.monaco-workbench .intuition-course-titlebar-icon::before { animation: none; }
+}

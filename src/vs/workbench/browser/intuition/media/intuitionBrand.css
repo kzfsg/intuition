@@ -60,3 +60,22 @@
 @media (prefers-reduced-motion: reduce) {
 	.monaco-workbench .intuition-text-spectrum { animation: none; }
 }
+
+/* The signature 1px iridescent line on the title bar's top edge (".nav-streak"). */
+.monaco-workbench .part.titlebar { position: relative; }
+.monaco-workbench .part.titlebar::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 1px;
+	pointer-events: none;
+	background-image: var(--intuition-streak);
+	background-size: 200% 100%;
+	opacity: 0.9;
+	animation: intuition-shimmer 7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+	.monaco-workbench .part.titlebar::after { animation: none; }
+}
