@@ -204,6 +204,7 @@ import './contrib/intuitionCourse/browser/intuitionCourse.contribution.js';
 
 // Intuition layout (Cursor-style icon row seed + title-bar Course button)
 import './browser/intuition/intuitionLayoutSeed.contribution.js';
+import './browser/intuition/intuitionBrand.contribution.js';
 
 // Default Account
 import './services/accounts/browser/defaultAccount.js';
